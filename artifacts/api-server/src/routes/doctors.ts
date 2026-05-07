@@ -190,12 +190,12 @@ router.delete("/doctors/me/claims/:id", async (req, res) => {
   res.status(204).end();
 });
 
-// GET /api/doctors/:id — public doctor profile by ID (published only)
-router.get("/doctors/:id", async (req, res) => {
+// GET /api/doctors/:userId — public doctor profile by Clerk user_id (published only)
+router.get("/doctors/:userId", async (req, res) => {
   const [row] = await db
     .select()
     .from(doctorProfilesTable)
-    .where(and(eq(doctorProfilesTable.id, req.params.id), eq(doctorProfilesTable.is_published, true)))
+    .where(and(eq(doctorProfilesTable.user_id, req.params.userId), eq(doctorProfilesTable.is_published, true)))
     .limit(1);
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
