@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index.tsx";
+import IndexEn from "./pages/IndexEn.tsx";
 import Pricing from "./pages/Pricing.tsx";
 import About from "./pages/About.tsx";
 import Contact from "./pages/Contact.tsx";
@@ -20,6 +21,14 @@ import Bookings from "./pages/Bookings.tsx";
 import DoctorAuth from "./pages/DoctorAuth.tsx";
 import DoctorDashboard from "./pages/DoctorDashboard.tsx";
 import DoctorOnboarding from "./pages/DoctorOnboarding.tsx";
+import DoctorProfile from "./pages/DoctorProfile.tsx";
+import Search from "./pages/Search.tsx";
+import Articles from "./pages/Articles.tsx";
+import ArticleDetail from "./pages/ArticleDetail.tsx";
+import Ask from "./pages/Ask.tsx";
+import Clinics from "./pages/Clinics.tsx";
+import ClinicsAdmin from "./pages/ClinicsAdmin.tsx";
+import MedicalTourism from "./pages/MedicalTourism.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,6 +45,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/en" element={<IndexEn />} />
+              <Route path="/search" element={<Search />} />
               <Route path="/spaces" element={<SpacesPage />} />
               <Route path="/equipment" element={<EquipmentPage />} />
               <Route path="/jobs" element={<JobsPage />} />
@@ -43,6 +54,12 @@ const App = () => (
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/listing/:slug" element={<ListingDetail />} />
               <Route path="/clinic-launch" element={<ClinicLaunch />} />
+              <Route path="/clinics" element={<Clinics />} />
+              <Route path="/clinics/admin" element={<ClinicsAdmin />} />
+              <Route path="/articles" element={<Articles />} />
+              <Route path="/articles/:slug" element={<ArticleDetail />} />
+              <Route path="/ask" element={<Ask />} />
+              <Route path="/medical-tourism" element={<MedicalTourism />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
@@ -54,6 +71,7 @@ const App = () => (
               <Route path="/doctors/auth" element={<DoctorAuth />} />
               <Route path="/doctors/dashboard" element={<DoctorDashboard />} />
               <Route path="/doctors/onboarding" element={<DoctorOnboarding />} />
+              <Route path="/doctors/:userId" element={<DoctorProfile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
