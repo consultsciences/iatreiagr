@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Search, MapPin, Building2, Stethoscope, Briefcase, Package, HandCoins,
   ShieldCheck, ArrowRight, CheckCircle2, Sparkles, TrendingUp, Plus, Quote,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,8 +57,15 @@ const faqs = [
 
 const Index = () => {
   const [featured, setFeatured] = useState<DbListing[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [featuredError, setFeaturedError] = useState(false);
   useEffect(() => {
-    fetchFeaturedListings(10).then(setFeatured).catch(() => {});
+    setFeaturedLoading(true);
+    setFeaturedError(false);
+    fetchFeaturedListings(10)
+      .then(setFeatured)
+      .catch(() => setFeaturedError(true))
+      .finally(() => setFeaturedLoading(false));
   }, []);
   return (
     <div className="min-h-screen bg-background">
@@ -196,11 +204,21 @@ const Index = () => {
               <Link to="/spaces">Όλες οι αγγελίες <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.slice(0, 6).map((l) => (
-              <ListingCard key={l.id} l={l} />
-            ))}
-          </div>
+          {featuredLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : featuredError ? (
+            <Card className="border-dashed p-10 text-center">
+              <p className="text-muted-foreground">Δεν ήταν δυνατή η φόρτωση των αγγελιών. Δοκιμάστε να ανανεώσετε τη σελίδα.</p>
+            </Card>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {featured.slice(0, 6).map((l) => (
+                <ListingCard key={l.id} l={l} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
