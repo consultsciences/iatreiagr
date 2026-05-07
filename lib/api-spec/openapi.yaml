@@ -1,22 +1,33 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: iatreia.gr API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: listings
+    description: Marketplace listings
+  - name: bookings
+    description: Appointment bookings
+  - name: doctors
+    description: Doctor profiles and availability
+  - name: clinics
+    description: Clinic claims and audit
+  - name: inquiries
+    description: Listing inquiries
+  - name: admin
+    description: Admin operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +35,985 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /listings:
+    get:
+      operationId: getListings
+      tags: [listings]
+      summary: Get listings (optionally filtered by category)
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [spaces, equipment, jobs, supplies, services]
+        - name: featured
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Listing"
+
+  /listings/{slug}:
+    get:
+      operationId: getListingBySlug
+      tags: [listings]
+      summary: Get a listing by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Listing found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Listing"
+        "404":
+          description: Not found
+
+  /bookings:
+    get:
+      operationId: getMyBookings
+      tags: [bookings]
+      summary: Get authenticated user's bookings
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Create a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}/cancel:
+    post:
+      operationId: cancelBooking
+      tags: [bookings]
+      summary: Cancel a booking
+      security:
+        - clerkAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+
+  /doctors:
+    get:
+      operationId: getDoctors
+      tags: [doctors]
+      summary: Get published doctors
+      parameters:
+        - name: specialty
+          in: query
+          schema:
+            type: string
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: verified
+          in: query
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorsResponse"
+
+  /doctors/{id}:
+    get:
+      operationId: getDoctorById
+      tags: [doctors]
+      summary: Get a doctor profile by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Doctor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorProfile"
+        "404":
+          description: Not found
+
+  /doctors/me:
+    get:
+      operationId: getMyDoctorProfile
+      tags: [doctors]
+      summary: Get the authenticated doctor's own profile
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Doctor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorProfile"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+    put:
+      operationId: upsertMyDoctorProfile
+      tags: [doctors]
+      summary: Upsert the authenticated doctor's profile
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertDoctorProfileBody"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorProfile"
+        "401":
+          description: Unauthorized
+
+  /doctors/me/availability:
+    get:
+      operationId: getMyAvailability
+      tags: [doctors]
+      summary: Get doctor's own availability slots
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Availability slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailabilitySlot"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: addAvailabilitySlot
+      tags: [doctors]
+      summary: Add an availability slot
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddAvailabilitySlotBody"
+      responses:
+        "201":
+          description: Created slot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilitySlot"
+        "401":
+          description: Unauthorized
+
+  /doctors/me/availability/{id}:
+    delete:
+      operationId: deleteAvailabilitySlot
+      tags: [doctors]
+      summary: Delete an availability slot
+      security:
+        - clerkAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /doctors/{id}/availability:
+    get:
+      operationId: getDoctorAvailability
+      tags: [doctors]
+      summary: Get a doctor's availability
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Availability slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailabilitySlot"
+
+  /doctors/me/bookings:
+    get:
+      operationId: getMyDoctorBookings
+      tags: [doctors]
+      summary: Get bookings for the authenticated doctor
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+        "401":
+          description: Unauthorized
+
+  /doctors/me/claims:
+    get:
+      operationId: getMyClinicClaims
+      tags: [clinics]
+      summary: Get clinic claims made by the doctor
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Clinic claims
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClinicClaim"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createClinicClaim
+      tags: [clinics]
+      summary: Submit a clinic claim
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClinicClaimBody"
+      responses:
+        "201":
+          description: Claim submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicClaim"
+        "401":
+          description: Unauthorized
+
+  /doctors/me/claims/{id}:
+    delete:
+      operationId: deleteClinicClaim
+      tags: [clinics]
+      summary: Delete a clinic claim
+      security:
+        - clerkAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+
+  /inquiries:
+    post:
+      operationId: createInquiry
+      tags: [inquiries]
+      summary: Submit an inquiry for a listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInquiryBody"
+      responses:
+        "201":
+          description: Created
+
+  /admin/doctors:
+    get:
+      operationId: adminGetDoctors
+      tags: [admin]
+      summary: Admin — list doctors with filters
+      security:
+        - clerkAuth: []
+      parameters:
+        - name: verified
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Doctors + total count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDoctorsResponse"
+        "403":
+          description: Forbidden
+
+  /admin/doctors/{id}:
+    patch:
+      operationId: adminUpdateDoctor
+      tags: [admin]
+      summary: Admin — update doctor profile fields
+      security:
+        - clerkAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateDoctorBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DoctorProfile"
+        "403":
+          description: Forbidden
+
+  /admin/claims:
+    get:
+      operationId: adminGetClaims
+      tags: [admin]
+      summary: Admin — list clinic claims
+      security:
+        - clerkAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, all]
+            default: pending
+      responses:
+        "200":
+          description: Clinic claims
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClinicClaim"
+        "403":
+          description: Forbidden
+
+  /admin/claims/{id}:
+    patch:
+      operationId: adminUpdateClaim
+      tags: [admin]
+      summary: Admin — approve/reject a clinic claim
+      security:
+        - clerkAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateClaimBody"
+      responses:
+        "200":
+          description: Updated claim
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicClaim"
+        "403":
+          description: Forbidden
+
+  /admin/audit-log:
+    get:
+      operationId: adminGetAuditLog
+      tags: [admin]
+      summary: Admin — get clinic claim audit log
+      security:
+        - clerkAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 500
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditLogEntry"
+        "403":
+          description: Forbidden
+    post:
+      operationId: adminCreateAuditLog
+      tags: [admin]
+      summary: Admin — insert an audit log entry
+      security:
+        - clerkAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAuditLogBody"
+      responses:
+        "201":
+          description: Created
+
+  /admin/roles/check:
+    get:
+      operationId: adminCheckRole
+      tags: [admin]
+      summary: Check if current user has admin role
+      security:
+        - clerkAuth: []
+      responses:
+        "200":
+          description: Role check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoleCheckResult"
+
 components:
+  securitySchemes:
+    clerkAuth:
+      type: http
+      scheme: bearer
+
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Listing:
+      type: object
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        category:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        price:
+          type: number
+          nullable: true
+        price_unit:
+          type: string
+          nullable: true
+        price_label:
+          type: string
+          nullable: true
+        badge:
+          type: string
+          nullable: true
+        meta:
+          type: string
+          nullable: true
+        image_url:
+          type: string
+          nullable: true
+        contact_name:
+          type: string
+          nullable: true
+        contact_email:
+          type: string
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        featured:
+          type: boolean
+        status:
+          type: string
+        created_at:
+          type: string
+      required: [id, slug, category, title, featured, status, created_at]
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+          nullable: true
+        confirmation_code:
+          type: string
+        doctor_id:
+          type: string
+        doctor_name:
+          type: string
+        doctor_specialty:
+          type: string
+        doctor_address:
+          type: string
+          nullable: true
+        appointment_date:
+          type: string
+        appointment_slot:
+          type: string
+        visit_type:
+          type: string
+        price:
+          type: number
+        patient_name:
+          type: string
+        patient_email:
+          type: string
+        patient_phone:
+          type: string
+        reason:
+          type: string
+          nullable: true
+        status:
+          type: string
+        cancelled_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+      required: [id, confirmation_code, doctor_id, doctor_name, doctor_specialty, appointment_date, appointment_slot, visit_type, price, patient_name, patient_email, patient_phone, status, created_at]
+
+    CreateBookingBody:
+      type: object
+      properties:
+        user_id:
+          type: string
+          nullable: true
+        confirmation_code:
+          type: string
+        doctor_id:
+          type: string
+        doctor_name:
+          type: string
+        doctor_specialty:
+          type: string
+        doctor_address:
+          type: string
+          nullable: true
+        appointment_date:
+          type: string
+        appointment_slot:
+          type: string
+        visit_type:
+          type: string
+        price:
+          type: number
+        patient_name:
+          type: string
+        patient_email:
+          type: string
+        patient_phone:
+          type: string
+        reason:
+          type: string
+          nullable: true
+      required: [confirmation_code, doctor_id, doctor_name, doctor_specialty, appointment_date, appointment_slot, visit_type, price, patient_name, patient_email, patient_phone]
+
+    DoctorProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        full_name:
+          type: string
+        specialty:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        photo_url:
+          type: string
+          nullable: true
+        clinic_id:
+          type: string
+          nullable: true
+        subscription_tier:
+          type: string
+        is_published:
+          type: boolean
+        verified:
+          type: boolean
+        verified_at:
+          type: string
+          nullable: true
+        onboarding_completed_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+      required: [id, user_id, full_name, subscription_tier, is_published, verified, created_at]
+
+    DoctorsResponse:
+      type: object
+      properties:
+        doctors:
+          type: array
+          items:
+            $ref: "#/components/schemas/DoctorProfile"
+        total:
+          type: integer
+      required: [doctors, total]
+
+    UpsertDoctorProfileBody:
+      type: object
+      properties:
+        full_name:
+          type: string
+        specialty:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        photo_url:
+          type: string
+          nullable: true
+        clinic_id:
+          type: string
+          nullable: true
+        subscription_tier:
+          type: string
+          nullable: true
+        is_published:
+          type: boolean
+          nullable: true
+        onboarding_completed_at:
+          type: string
+          nullable: true
+      required: [full_name]
+
+    AvailabilitySlot:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        day_of_week:
+          type: integer
+        start_time:
+          type: string
+        end_time:
+          type: string
+        created_at:
+          type: string
+      required: [id, user_id, day_of_week, start_time, end_time, created_at]
+
+    AddAvailabilitySlotBody:
+      type: object
+      properties:
+        day_of_week:
+          type: integer
+        start_time:
+          type: string
+        end_time:
+          type: string
+      required: [day_of_week, start_time, end_time]
+
+    ClinicClaim:
+      type: object
+      properties:
+        id:
+          type: string
+        clinic_id:
+          type: string
+        user_id:
+          type: string
+        status:
+          type: string
+        decision_note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+      required: [id, clinic_id, user_id, status, created_at]
+
+    CreateClinicClaimBody:
+      type: object
+      properties:
+        clinic_id:
+          type: string
+      required: [clinic_id]
+
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        claim_id:
+          type: string
+        admin_id:
+          type: string
+        decision:
+          type: string
+        note:
+          type: string
+          nullable: true
+        error_detail:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+      required: [id, claim_id, admin_id, decision, created_at]
+
+    CreateAuditLogBody:
+      type: object
+      properties:
+        claim_id:
+          type: string
+        decision:
+          type: string
+        note:
+          type: string
+          nullable: true
+        error_detail:
+          type: string
+          nullable: true
+      required: [claim_id, decision]
+
+    AdminDoctorsResponse:
+      type: object
+      properties:
+        doctors:
+          type: array
+          items:
+            $ref: "#/components/schemas/DoctorProfile"
+        total:
+          type: integer
+      required: [doctors, total]
+
+    AdminUpdateDoctorBody:
+      type: object
+      properties:
+        verified:
+          type: boolean
+          nullable: true
+        verified_at:
+          type: string
+          nullable: true
+        is_published:
+          type: boolean
+          nullable: true
+        full_name:
+          type: string
+          nullable: true
+        specialty:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        photo_url:
+          type: string
+          nullable: true
+
+    AdminUpdateClaimBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [approved, rejected]
+        decision_note:
+          type: string
+          nullable: true
+      required: [status]
+
+    RoleCheckResult:
+      type: object
+      properties:
+        is_admin:
+          type: boolean
+      required: [is_admin]
+
+    CreateInquiryBody:
+      type: object
+      properties:
+        listing_id:
+          type: string
+        sender_name:
+          type: string
+        sender_email:
+          type: string
+        sender_phone:
+          type: string
+          nullable: true
+        message:
+          type: string
+      required: [listing_id, sender_name, sender_email, message]
