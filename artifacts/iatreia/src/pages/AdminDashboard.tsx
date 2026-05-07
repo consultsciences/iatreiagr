@@ -282,14 +282,9 @@ const AdminDashboard = () => {
     }
   }, [claimStatusFilter]);
 
-  // ---------- Audit log ----------
   const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
   const [auditLoading, setAuditLoading] = useState(true);
   const [auditExporting, setAuditExporting] = useState(false);
-  // Streaming export progress. `estimatedRows` is derived from the currently
-  // visible filtered table count and used to compute a percentage; if the
-  // server returns more (e.g. range > 500 visible rows), we fall back to a
-  // throbbing indicator. `etaSeconds` is null until we have ≥1s of samples.
   const [auditExportProgress, setAuditExportProgress] = useState<{
     rows: number;
     bytes: number;
@@ -317,11 +312,6 @@ const AdminDashboard = () => {
     }
   });
 
-  // CSV export formatting — locale-dependent. UTF-8 BOM is needed for Excel
-  // on Windows; the delimiter must match the system list separator (Excel in
-  // most EU locales expects ";", US/UK expects ",", "tab" is universally
-  // auto-detected as TSV). Persisted so each admin keeps their preferred
-  // setup across sessions.
   const CSV_BOM_KEY = "admin.csvExportBom";
   const CSV_DELIMITER_KEY = "admin.csvExportDelimiter";
   type CsvDelimiter = "comma" | "semicolon" | "tab";
@@ -346,10 +336,6 @@ const AdminDashboard = () => {
     }
   }, [csvDelimiter]);
 
-  // Date format for CSV export. "iso_utc" stays machine-readable; "excel_local"
-  // emits "YYYY-MM-DD HH:mm:ss±HH:MM" in the selected audit timezone — Excel
-  // recognizes it as a real datetime in every locale and matches the wall-clock
-  // values shown in the audit table.
   const CSV_DATE_FORMAT_KEY = "admin.csvExportDateFormat";
   type CsvDateFormat = "iso_utc" | "excel_local";
   const [csvDateFormat, setCsvDateFormat] = useState<CsvDateFormat>(() => {
@@ -373,7 +359,6 @@ const AdminDashboard = () => {
     };
   }, [auditClaimSearchInput]);
 
-  // Debounce search input → server query
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -722,7 +707,6 @@ const AdminDashboard = () => {
     getCompleteness(a).percent - getCompleteness(b).percent;
   const shouldSort = lowCompletenessOnly && sortByCompleteness;
   const applySort = (list: DoctorProfile[]) => (shouldSort ? [...list].sort(sortFn) : list);
-  // Server-paginated rows; low-completeness filter & sort are applied to the current page only.
   const pendingDoctors = applySort(pendingRows.filter(lowFilter));
   const verifiedDoctors = applySort(verifiedRows.filter(lowFilter));
   const lowCount =
@@ -739,8 +723,6 @@ const AdminDashboard = () => {
   const auditFailureCount = auditEntries.filter((e) =>
     AUDIT_FAILURE_DECISIONS.includes(e.decision as typeof AUDIT_FAILURE_DECISIONS[number]),
   ).length;
-  // Date range bounds — "from" inclusive at 00:00, "to" inclusive through 23:59:59.999
-  // Date range bounds — interpreted in the selected timezone (auditTimezone)
   const auditFromMs = auditDateFrom ? wallClockToUtcMs(auditDateFrom, "00:00:00.000", auditTimezone) : null;
   const auditToMs = auditDateTo ? wallClockToUtcMs(auditDateTo, "23:59:59.999", auditTimezone) : null;
   const filteredAuditEntries = auditEntries.filter((e) => {
@@ -1863,7 +1845,6 @@ const ClaimDetailsSheet = ({
     };
   }, [claim?.id, claim?.user_id]);
 
-  // Derive timeline events from the claim + sibling history for this user/clinic.
   const timeline = claim
     ? [
         {

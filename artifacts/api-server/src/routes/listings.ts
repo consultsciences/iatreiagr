@@ -28,7 +28,7 @@ router.get("/listings/:slug", async (req, res) => {
   const [row] = await db
     .select()
     .from(listingsTable)
-    .where(eq(listingsTable.slug, slug))
+    .where(and(eq(listingsTable.slug, slug), eq(listingsTable.status, "published")))
     .limit(1);
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
