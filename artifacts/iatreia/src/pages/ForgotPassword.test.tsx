@@ -1,62 +1,69 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+
+const createMock = vi.fn();
+vi.mock("@clerk/clerk-react", () => ({
+  useSignIn: () => ({
+    isLoaded: true,
+    signIn: { create: createMock },
+  }),
+}));
+
 import ForgotPassword from "./ForgotPassword";
 
-// Mock the Supabase client — ForgotPassword imports it at module load, but we don't
-// invoke any auth methods just by rendering.
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    auth: {
-      resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
-    },
-  },
-}));
-
-vi.mock("@/hooks/use-toast", () => ({
-  toast: vi.fn(),
-}));
-
-const renderAt = (path: string) =>
+const renderPage = () =>
   render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter>
       <ForgotPassword />
     </MemoryRouter>,
   );
 
-describe("ForgotPassword prefill", () => {
-  beforeEach(() => {
-    window.localStorage.clear();
+describe("ForgotPassword", () => {
+  it("renders the email input and submit button", () => {
+    renderPage();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /αποστολή/i })).toBeInTheDocument();
   });
 
-  it("prefills the email field from the ?email= query parameter", () => {
-    renderAt("/forgot-password?email=doctor%40example.com");
-    const input = screen.getByLabelText(/email/i) as HTMLInputElement;
-    expect(input.value).toBe("doctor@example.com");
-    expect(
-      screen.getByText(/Συμπληρώθηκε αυτόματα από προηγούμενη χρήση/i),
-    ).toBeInTheDocument();
+  it("calls signIn.create with reset_password_email_code strategy on submit", async () => {
+    createMock.mockResolvedValueOnce({});
+    renderPage();
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: "doctor@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /αποστολή/i }));
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith({
+        strategy: "reset_password_email_code",
+        identifier: "doctor@example.com",
+      }),
+    );
   });
 
-  it("falls back to the last-used email in localStorage", () => {
-    window.localStorage.setItem("iatreia:lastAuthEmail", "saved@example.com");
-    renderAt("/forgot-password");
-    const input = screen.getByLabelText(/email/i) as HTMLInputElement;
-    expect(input.value).toBe("saved@example.com");
+  it("shows a sent confirmation after successful submit", async () => {
+    createMock.mockResolvedValueOnce({});
+    renderPage();
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /αποστολή/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/στείλαμε κωδικό/i)).toBeInTheDocument(),
+    );
   });
 
-  it("ignores invalid query values and leaves the field empty", () => {
-    renderAt("/forgot-password?email=not-an-email");
-    const input = screen.getByLabelText(/email/i) as HTMLInputElement;
-    expect(input.value).toBe("");
-    expect(
-      screen.queryByText(/Συμπληρώθηκε αυτόματα/i),
-    ).not.toBeInTheDocument();
-  });
-
-  it("renders an empty field when neither query nor storage has a valid email", () => {
-    renderAt("/forgot-password");
-    const input = screen.getByLabelText(/email/i) as HTMLInputElement;
-    expect(input.value).toBe("");
+  it("shows an error message when signIn.create rejects", async () => {
+    createMock.mockRejectedValueOnce({
+      errors: [{ longMessage: "Σφάλμα δοκιμής" }],
+    });
+    renderPage();
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: "bad@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /αποστολή/i }));
+    await waitFor(() =>
+      expect(screen.getByText("Σφάλμα δοκιμής")).toBeInTheDocument(),
+    );
   });
 });

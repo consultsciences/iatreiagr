@@ -32,12 +32,14 @@ const AuthPage = () => {
       <main className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
         {tab === "signup" ? (
           <SignUp
-            routing="hash"
+            routing="path"
+            path={`${basePath}/auth`}
             afterSignUpUrl={`${basePath}${redirectTo}`}
           />
         ) : (
           <SignIn
-            routing="hash"
+            routing="path"
+            path={`${basePath}/auth`}
             afterSignInUrl={`${basePath}${redirectTo}`}
           />
         )}

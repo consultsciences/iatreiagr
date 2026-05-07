@@ -35,7 +35,8 @@ const DoctorAuthPage = () => {
             </p>
           </div>
           <SignIn
-            routing="hash"
+            routing="path"
+            path={`${basePath}/doctor-auth`}
             afterSignInUrl={`${basePath}/doctors/dashboard`}
             afterSignUpUrl={`${basePath}/doctors/dashboard`}
           />

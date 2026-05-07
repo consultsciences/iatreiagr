@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -8,37 +8,17 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
-const onAuthStateChangeMock = vi.fn();
-const getSessionMock = vi.fn();
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    auth: {
-      onAuthStateChange: (...args: unknown[]) => onAuthStateChangeMock(...args),
-      getSession: () => getSessionMock(),
-      updateUser: vi.fn().mockResolvedValue({ error: null }),
-    },
-  },
+const attemptFirstFactorMock = vi.fn();
+const setActiveMock = vi.fn();
+vi.mock("@clerk/clerk-react", () => ({
+  useSignIn: () => ({
+    isLoaded: true,
+    signIn: { attemptFirstFactor: attemptFirstFactorMock },
+    setActive: setActiveMock,
+  }),
 }));
 
-vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn() }));
-
 import ResetPassword from "./ResetPassword";
-
-const setLocation = (href: string) => {
-  const url = new URL(href);
-  // jsdom allows reassigning these via defineProperty
-  Object.defineProperty(window, "location", {
-    writable: true,
-    value: {
-      ...window.location,
-      href: url.href,
-      origin: url.origin,
-      pathname: url.pathname,
-      search: url.search,
-      hash: url.hash,
-    },
-  });
-};
 
 const renderPage = () =>
   render(
@@ -48,177 +28,48 @@ const renderPage = () =>
   );
 
 describe("ResetPassword", () => {
-  beforeEach(() => {
-    navigateMock.mockReset();
-    onAuthStateChangeMock.mockReset();
-    onAuthStateChangeMock.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
-    getSessionMock.mockReset();
-    getSessionMock.mockResolvedValue({ data: { session: null } });
-    window.localStorage.clear();
+  it("renders code and password inputs", () => {
+    renderPage();
+    expect(screen.getByLabelText(/κωδικός επαλήθευσης/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/νέος κωδικός πρόσβασης/i)).toBeInTheDocument();
   });
 
-  it("shows the link-invalid notice when the URL hash carries an error_description", async () => {
-    setLocation(
-      "https://app.example.com/reset-password#error=access_denied&error_description=Email+link+is+invalid+or+has+expired",
-    );
+  it("calls attemptFirstFactor with reset_password_email_code strategy on submit", async () => {
+    attemptFirstFactorMock.mockResolvedValueOnce({ status: "complete", createdSessionId: "sess_1" });
+    setActiveMock.mockResolvedValueOnce(undefined);
     renderPage();
-
-    expect(
-      await screen.findByText(/Μη έγκυρος ή ληγμένος σύνδεσμος/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Email link is invalid or has expired/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Αίτηση νέου συνδέσμου/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("falls back to invalid-link notice when no session arrives within 4s", async () => {
-    setLocation("https://app.example.com/reset-password");
-    renderPage();
-
-    expect(screen.getByText(/Επαλήθευση συνδέσμου/i)).toBeInTheDocument();
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText(/Μη έγκυρος ή ληγμένος σύνδεσμος/i),
-        ).toBeInTheDocument(),
-      { timeout: 6000 },
-    );
-  }, 10000);
-
-  it("uses the email extracted from the URL hash when requesting a new link", async () => {
-    setLocation(
-      "https://app.example.com/reset-password#error=otp_expired&error_description=Token+expired&email=doctor%40example.com",
-    );
-    renderPage();
-
-    const button = await screen.findByRole("button", {
-      name: /Αίτηση νέου συνδέσμου/i,
-    });
-    fireEvent.click(button);
-
-    expect(navigateMock).toHaveBeenCalledWith(
-      "/forgot-password?email=doctor%40example.com",
+    fireEvent.change(screen.getByLabelText(/κωδικός επαλήθευσης/i), { target: { value: "123456" } });
+    fireEvent.change(screen.getByLabelText(/νέος κωδικός πρόσβασης/i), { target: { value: "newpassword" } });
+    fireEvent.click(screen.getByRole("button", { name: /ορισμός/i }));
+    await waitFor(() =>
+      expect(attemptFirstFactorMock).toHaveBeenCalledWith({
+        strategy: "reset_password_email_code",
+        code: "123456",
+        password: "newpassword",
+      }),
     );
   });
 
-  it("falls back to the last-used email from localStorage when the URL has none", async () => {
-    setLocation(
-      "https://app.example.com/reset-password#error=otp_expired&error_description=Token+expired",
-    );
-    window.localStorage.setItem("iatreia:lastAuthEmail", "saved@example.com");
+  it("navigates to / after successful reset", async () => {
+    attemptFirstFactorMock.mockResolvedValueOnce({ status: "complete", createdSessionId: "sess_1" });
+    setActiveMock.mockResolvedValueOnce(undefined);
     renderPage();
-
-    const button = await screen.findByRole("button", {
-      name: /Αίτηση νέου συνδέσμου/i,
-    });
-    fireEvent.click(button);
-
-    expect(navigateMock).toHaveBeenCalledWith(
-      "/forgot-password?email=saved%40example.com",
-    );
+    fireEvent.change(screen.getByLabelText(/κωδικός επαλήθευσης/i), { target: { value: "123456" } });
+    fireEvent.change(screen.getByLabelText(/νέος κωδικός πρόσβασης/i), { target: { value: "newpassword" } });
+    fireEvent.click(screen.getByRole("button", { name: /ορισμός/i }));
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/"));
   });
 
-  it("E2E: full expired-link flow renders notice, prefilled email and navigates on request", async () => {
-    setLocation(
-      "https://app.example.com/reset-password#error=access_denied&error_description=Email+link+is+invalid+or+has+expired&email=expired%40example.com",
-    );
-    // Also seed localStorage with a different email — URL must take precedence
-    window.localStorage.setItem("iatreia:lastAuthEmail", "stale@example.com");
-    renderPage();
-
-    // 1. Invalid-link notice rendered (from extractErrorFromRecoveryUrl)
-    expect(
-      await screen.findByText(/Μη έγκυρος ή ληγμένος σύνδεσμος/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Email link is invalid or has expired/i),
-    ).toBeInTheDocument();
-
-    // 2. Password form is NOT shown
-    expect(screen.queryByLabelText(/Νέος κωδικός/i)).not.toBeInTheDocument();
-
-    // 3. Request-new-link button uses the URL email (not the localStorage one)
-    const button = screen.getByRole("button", {
-      name: /Αίτηση νέου συνδέσμου/i,
-    });
-    fireEvent.click(button);
-    expect(navigateMock).toHaveBeenCalledWith(
-      "/forgot-password?email=expired%40example.com",
-    );
-    expect(navigateMock).not.toHaveBeenCalledWith(
-      "/forgot-password?email=stale%40example.com",
-    );
-  });
-
-  it("renders the password form when a recovery session is established", async () => {
-    setLocation("https://app.example.com/reset-password");
-    let captured: ((event: string, session: unknown) => void) | null = null;
-    onAuthStateChangeMock.mockImplementation((cb) => {
-      captured = cb;
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
+  it("shows an error message when attemptFirstFactor rejects", async () => {
+    attemptFirstFactorMock.mockRejectedValueOnce({
+      errors: [{ longMessage: "Λάθος κωδικός επαλήθευσης" }],
     });
     renderPage();
-
-    captured!("PASSWORD_RECOVERY", { user: { email: "recovered@example.com" } });
-
-    expect(
-      await screen.findByText(/Ο σύνδεσμος επαληθεύτηκε/i),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Νέος κωδικός/i)).toBeInTheDocument();
-  });
-
-  describe("Greek UI strings", () => {
-    const GREEK = {
-      pageTitle: "Ορισμός νέου κωδικού",
-      pageSubtitle: "Εισάγετε τον νέο σας κωδικό πρόσβασης.",
-      noticeTitle: "Μη έγκυρος ή ληγμένος σύνδεσμος",
-      noticeHelp:
-        /Οι σύνδεσμοι ανάκτησης ισχύουν για περιορισμένο χρόνο και μπορούν να χρησιμοποιηθούν μόνο μία φορά\.\s*Ζητήστε νέο σύνδεσμο και ανοίξτε τον από το ίδιο πρόγραμμα περιήγησης\./,
-      requestButton: "Αίτηση νέου συνδέσμου",
-      backLink: "Επιστροφή στη σύνδεση",
-      verifying: /Επαλήθευση συνδέσμου/,
-      fallbackError: "Ο σύνδεσμος ανάκτησης δεν είναι έγκυρος ή έχει λήξει.",
-    } as const;
-
-    it("renders all invalid-link Greek strings when URL has error_description", async () => {
-      setLocation(
-        "https://app.example.com/reset-password#error=access_denied&error_description=Email+link+is+invalid+or+has+expired",
-      );
-      renderPage();
-
-      expect(
-        screen.getByRole("heading", { name: GREEK.pageTitle }),
-      ).toBeInTheDocument();
-      expect(screen.getByText(GREEK.pageSubtitle)).toBeInTheDocument();
-      expect(screen.getByText(GREEK.backLink)).toBeInTheDocument();
-
-      expect(await screen.findByText(GREEK.noticeTitle)).toBeInTheDocument();
-      expect(screen.getByText(GREEK.noticeHelp)).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: GREEK.requestButton }),
-      ).toBeInTheDocument();
-    });
-
-    it("renders the Greek expired-link fallback message after the 4s timeout", async () => {
-      setLocation("https://app.example.com/reset-password");
-      renderPage();
-
-      expect(screen.getByText(GREEK.verifying)).toBeInTheDocument();
-
-      await waitFor(
-        () => expect(screen.getByText(GREEK.noticeTitle)).toBeInTheDocument(),
-        { timeout: 6000 },
-      );
-
-      expect(screen.getByText(GREEK.fallbackError)).toBeInTheDocument();
-      expect(screen.getByText(GREEK.noticeHelp)).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: GREEK.requestButton }),
-      ).toBeInTheDocument();
-    }, 10000);
+    fireEvent.change(screen.getByLabelText(/κωδικός επαλήθευσης/i), { target: { value: "000000" } });
+    fireEvent.change(screen.getByLabelText(/νέος κωδικός πρόσβασης/i), { target: { value: "newpassword" } });
+    fireEvent.click(screen.getByRole("button", { name: /ορισμός/i }));
+    await waitFor(() =>
+      expect(screen.getByText("Λάθος κωδικός επαλήθευσης")).toBeInTheDocument(),
+    );
   });
 });
