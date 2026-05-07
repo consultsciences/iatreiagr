@@ -1,0 +1,1 @@
+ALTER TABLE public.clinic_claim_audit_log ADD COLUMN error_detail text;

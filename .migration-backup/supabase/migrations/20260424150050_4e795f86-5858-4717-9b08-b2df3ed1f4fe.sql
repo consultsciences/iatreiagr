@@ -1,0 +1,1 @@
+ALTER TABLE public.clinic_claims ADD COLUMN IF NOT EXISTS decision_note text;

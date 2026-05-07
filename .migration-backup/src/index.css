@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 39% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 39% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 39% 15%;
+
+    /* iatreia.gr B2B — deep navy primary, warm amber accent */
+    --primary: 218 65% 22%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 218 55% 32%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 39% 15%;
+
+    --muted: 210 30% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 35 92% 55%;
+    --accent-foreground: 218 65% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 28% 90%;
+    --input: 214 28% 90%;
+    --ring: 218 65% 22%;
+
+    --radius: 0.5rem;
+
+    --gradient-hero: linear-gradient(135deg, hsl(218 65% 18%) 0%, hsl(218 55% 32%) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(35 50% 97%) 0%, hsl(0 0% 100%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(35 92% 55%) 0%, hsl(28 88% 50%) 100%);
+    --shadow-card: 0 4px 20px -8px hsl(218 65% 22% / 0.1);
+    --shadow-elevated: 0 16px 50px -12px hsl(218 65% 22% / 0.25);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 215 39% 10%;
+    --foreground: 210 40% 98%;
+    --card: 215 39% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 215 39% 12%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 174 65% 45%;
+    --primary-foreground: 215 39% 10%;
+    --secondary: 215 30% 18%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 30% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 215 30% 18%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 30% 20%;
+    --input: 215 30% 20%;
+    --ring: 174 65% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv01";
+  }
+}
