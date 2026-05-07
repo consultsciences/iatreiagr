@@ -3,15 +3,8 @@ import { z } from "zod";
 const emailSchema = z.string().email();
 
 /**
- * Extract an email address from a Supabase password-recovery URL.
- *
- * Supabase places auth params in the URL hash (e.g. `#access_token=...&email=...`),
- * but some flows also send the email as a regular query param (`?email=...`).
- * This helper checks both and returns the first valid email it finds, or null.
- *
- * Accepts either:
- *  - a full URL string (e.g. `window.location.href`)
- *  - a `{ search, hash }` pair (e.g. `window.location`)
+ * Extract an email address from a password-recovery URL.
+ * Checks both URL hash and query string, returns the first valid email or null.
  */
 export function extractEmailFromRecoveryUrl(
   input: string | { search?: string; hash?: string },
@@ -38,7 +31,6 @@ export function extractEmailFromRecoveryUrl(
   const hashParams = new URLSearchParams(hashBody);
   const searchParams = new URLSearchParams(searchBody);
 
-  // Prefer hash (where Supabase puts recovery params), then query string
   const raw = hashParams.get("email") ?? searchParams.get("email");
   if (!raw) return null;
 
@@ -53,7 +45,7 @@ export function extractEmailFromRecoveryUrl(
 }
 
 /**
- * Extract an `error_description` (or `error`) message from a Supabase recovery URL hash.
+ * Extract an error message from a recovery URL hash.
  * Returns null when no error is present.
  */
 export function extractErrorFromRecoveryUrl(

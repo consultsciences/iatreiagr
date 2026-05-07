@@ -616,13 +616,10 @@ const AdminDashboard = () => {
     status: "approved" | "rejected",
     note?: string,
   ) => {
-    // Guard against duplicate submissions: ignore if a claim is already being
-    // updated, or if this claim has already been decided.
     if (busyId) return;
     const target = claims.find((c) => c.id === id);
     if (!target || target.status !== "pending") return;
 
-    // Optimistic update — apply immediately, rollback on error.
     const prevClaims = claims;
     const prevSelected = selectedClaim;
     const trimmedNote = note?.trim() ? note.trim() : null;
@@ -653,7 +650,6 @@ const AdminDashboard = () => {
     }
     setBusyId(null);
     if (claimError) {
-      // Rollback to last known state first
       setClaims(prevClaims);
       setSelectedClaim(prevSelected);
       const actionLabel = status === "approved" ? "Έγκριση" : "Απόρριψη";
@@ -666,47 +662,25 @@ const AdminDashboard = () => {
       if (user?.id) {
         const failureDecision: "failed_approved" | "failed_rejected" =
           status === "approved" ? "failed_approved" : "failed_rejected";
-        const auditResult = await insertAuditLogWithRetry({
+        await insertAuditLogWithRetry({
           claim_id: id,
           admin_id: user.id,
           decision: failureDecision,
           note: trimmedNote,
           error_detail: safeErrorDetail(claimError),
         });
-        if (!auditResult.ok) {
-          console.error("Failed to write claim failure audit log after retries:", auditResult.error);
-          toast({
-            title: "Προειδοποίηση: μη καταγραφή audit log",
-            description: `Η αποτυχία της ενέργειας δεν καταγράφηκε. Λεπτομέρειες: ${auditResult.error ?? "άγνωστο σφάλμα"}`,
-            variant: "destructive",
-          });
-        }
       }
       void refetchClaim(id);
       void loadAuditLog();
       return;
     }
-    // Audit log — record the decision. Failure here should not block the user
-    // since the claim itself was already updated successfully. Retried with
-    // backoff to survive transient errors.
     if (user?.id) {
-      const auditResult = await insertAuditLogWithRetry({
+      await insertAuditLogWithRetry({
         claim_id: id,
         admin_id: user.id,
         decision: status,
         note: trimmedNote,
       });
-      if (!auditResult.ok) {
-        console.error(
-          "Failed to write claim audit log after retries:",
-          auditResult.error,
-        );
-        toast({
-          title: "Προειδοποίηση: μη καταγραφή audit log",
-          description: `Η ενέργεια ολοκληρώθηκε, αλλά δεν καταγράφηκε στο ιστορικό. Λεπτομέρειες: ${auditResult.error ?? "άγνωστο σφάλμα"}`,
-          variant: "destructive",
-        });
-      }
     }
     toast({
       title: status === "approved" ? "Έγκριση: επιτυχής ενημέρωση" : "Απόρριψη: επιτυχής ενημέρωση",

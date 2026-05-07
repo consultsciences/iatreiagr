@@ -1,14 +1,43 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Stethoscope } from "lucide-react";
-import { SignIn } from "@clerk/clerk-react";
+import { useSignIn } from "@clerk/clerk-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ResetPassword = () => {
+  const { signIn, setActive, isLoaded } = useSignIn();
   const navigate = useNavigate();
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => { document.title = "Νέος κωδικός | iatreia.gr"; }, []);
 
-  const basePath = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isLoaded) return;
+    setError("");
+    setLoading(true);
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code: code.trim(),
+        password,
+      });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        navigate("/");
+      }
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Σφάλμα επαναφοράς.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
@@ -20,13 +49,48 @@ const ResetPassword = () => {
         </div>
       </header>
       <main className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-        <SignIn
-          routing="hash"
-          afterSignInUrl={`${basePath}/doctors/dashboard`}
-        />
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Νέος κωδικός</CardTitle>
+            <CardDescription>Εισάγετε τον κωδικό που λάβατε και ορίστε νέο κωδικό πρόσβασης.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="code">Κωδικός επαλήθευσης</Label>
+                <Input
+                  id="code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Νέος κωδικός πρόσβασης</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" className="w-full" disabled={loading || !isLoaded}>
+                {loading ? "Αποθήκευση…" : "Ορισμός νέου κωδικού"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </main>
       <footer className="py-4 text-center text-xs text-muted-foreground">
-        <Link to="/doctors/auth" className="underline">Επιστροφή στη σύνδεση</Link>
+        <Link to="/forgot-password" className="underline">Ξαναστείλτε κωδικό</Link>
+        {" · "}
+        <Link to="/auth" className="underline">Σύνδεση</Link>
       </footer>
     </div>
   );
