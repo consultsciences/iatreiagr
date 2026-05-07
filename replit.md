@@ -8,8 +8,50 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/db run push` — push DB schema changes directly (dev shortcut, skips migration tracking)
 - Required env: `DATABASE_URL` — Postgres connection string
+
+## Fresh Environment Setup
+
+Follow these steps in order when setting up on a brand-new database:
+
+1. **Provision a PostgreSQL database** and set `DATABASE_URL` in the environment.
+2. **Run migrations** — creates all tables from the Drizzle schema:
+   ```
+   pnpm --filter @workspace/db run migrate
+   ```
+3. **Seed sample data** — populates listings, an admin user role, and a doctor profile:
+   ```
+   pnpm --filter @workspace/db run seed
+   ```
+4. **Start the API server:**
+   ```
+   pnpm --filter @workspace/api-server run dev
+   ```
+
+### Existing database (already set up via `push`)
+
+If your database was set up using `drizzle-kit push` before migration tracking was added, stamp the existing schema so `migrate` knows it's already applied:
+
+```
+pnpm --filter @workspace/db run stamp-migrations
+```
+
+Then run the seed as usual.
+
+### Adding schema changes
+
+1. Edit `lib/db/src/schema/` as needed.
+2. Generate a new migration file:
+   ```
+   pnpm --filter @workspace/db run generate
+   ```
+3. Apply it:
+   ```
+   pnpm --filter @workspace/db run migrate
+   ```
+
+Migration SQL files live in `lib/db/migrations/` and are committed to source control.
 
 ## Stack
 
