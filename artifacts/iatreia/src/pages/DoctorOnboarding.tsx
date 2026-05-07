@@ -95,7 +95,7 @@ const PLANS: {
 const DoctorOnboarding = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { session, openSignUp } = useClerk();
+  const { session, openSignUp, user: clerkUser } = useClerk();
   const [stepIdx, setStepIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
@@ -162,7 +162,7 @@ const DoctorOnboarding = () => {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          full_name: user.email,
+          full_name: [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ") || user.email,
           email: user.email,
           specialty,
           phone,
