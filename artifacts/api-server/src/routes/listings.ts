@@ -30,7 +30,7 @@ router.get("/listings/:slug", async (req, res) => {
     .from(listingsTable)
     .where(eq(listingsTable.slug, slug))
     .limit(1);
-  if (!row) return res.status(404).json({ error: "Not found" });
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
 });
 

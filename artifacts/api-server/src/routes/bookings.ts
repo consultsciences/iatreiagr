@@ -2,18 +2,18 @@ import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { bookingsTable } from "@workspace/db";
-import { eq, and, desc, or, isNull } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { CreateBookingBody } from "@workspace/api-zod";
 
 const router = Router();
 
 // GET /api/bookings — user's own bookings
 router.get("/bookings", async (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  const { userId, sessionClaims } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  // Claim any guest bookings made with same email
-  const userEmail = (req as any).auth?.sessionClaims?.email as string | undefined;
+  // Claim any guest bookings made with the same email
+  const userEmail = typeof sessionClaims?.email === "string" ? sessionClaims.email : undefined;
   if (userEmail) {
     await db
       .update(bookingsTable)
@@ -35,11 +35,11 @@ router.get("/bookings", async (req, res) => {
   res.json(rows);
 });
 
-// POST /api/bookings — create a booking (public, user_id optional)
+// POST /api/bookings — create a booking (public, user_id always from auth)
 router.post("/bookings", async (req, res) => {
   const parsed = CreateBookingBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.issues });
+    res.status(400).json({ error: parsed.error.issues }); return;
   }
   const { userId } = getAuth(req);
 
@@ -47,7 +47,7 @@ router.post("/bookings", async (req, res) => {
     .insert(bookingsTable)
     .values({
       ...parsed.data,
-      user_id: parsed.data.user_id ?? userId ?? null,
+      user_id: userId ?? null,
       price: String(parsed.data.price),
     })
     .returning();
@@ -58,7 +58,7 @@ router.post("/bookings", async (req, res) => {
 // POST /api/bookings/:id/cancel
 router.post("/bookings/:id/cancel", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const { id } = req.params;
   const [booking] = await db
@@ -67,8 +67,8 @@ router.post("/bookings/:id/cancel", async (req, res) => {
     .where(eq(bookingsTable.id, id))
     .limit(1);
 
-  if (!booking) return res.status(404).json({ error: "Not found" });
-  if (booking.user_id !== userId) return res.status(403).json({ error: "Forbidden" });
+  if (!booking) { res.status(404).json({ error: "Not found" }); return; }
+  if (booking.user_id !== userId) { res.status(403).json({ error: "Forbidden" }); return; }
 
   const [updated] = await db
     .update(bookingsTable)

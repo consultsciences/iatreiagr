@@ -7,7 +7,7 @@ const router = Router();
 
 router.post("/inquiries", async (req, res) => {
   const parsed = CreateInquiryBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
   await db.insert(inquiriesTable).values(parsed.data);
   res.status(201).end();

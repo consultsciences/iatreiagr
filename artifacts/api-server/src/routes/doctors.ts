@@ -2,10 +2,16 @@ import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { doctorProfilesTable, doctorAvailabilityTable, bookingsTable, clinicClaimsTable } from "@workspace/db";
-import { eq, and, desc, asc, or, ilike, sql } from "drizzle-orm";
+import { eq, and, desc, asc, or, ilike, sql, SQL } from "drizzle-orm";
 import { UpsertMyDoctorProfileBody, AddAvailabilitySlotBody, CreateClinicClaimBody } from "@workspace/api-zod";
 
 const router = Router();
+
+function omitNullValues(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== null),
+  );
+}
 
 // GET /api/doctors — public list of published doctors
 router.get("/doctors", async (req, res) => {
@@ -13,18 +19,17 @@ router.get("/doctors", async (req, res) => {
   const lim = Math.min(parseInt(limit) || 50, 200);
   const off = parseInt(offset) || 0;
 
-  const conditions = [eq(doctorProfilesTable.is_published, true)];
+  const conditions: SQL[] = [eq(doctorProfilesTable.is_published, true)];
   if (specialty) conditions.push(ilike(doctorProfilesTable.specialty!, `%${specialty}%`));
   if (city) conditions.push(ilike(doctorProfilesTable.city!, `%${city}%`));
   if (verified === "true") conditions.push(eq(doctorProfilesTable.verified, true));
   if (search) {
-    conditions.push(
-      or(
-        ilike(doctorProfilesTable.full_name, `%${search}%`),
-        ilike(doctorProfilesTable.specialty!, `%${search}%`),
-        ilike(doctorProfilesTable.city!, `%${search}%`),
-      )!,
+    const clause = or(
+      ilike(doctorProfilesTable.full_name, `%${search}%`),
+      ilike(doctorProfilesTable.specialty!, `%${search}%`),
+      ilike(doctorProfilesTable.city!, `%${search}%`),
     );
+    if (clause) conditions.push(clause);
   }
 
   const [rows, countResult] = await Promise.all([
@@ -38,7 +43,7 @@ router.get("/doctors", async (req, res) => {
 // GET /api/doctors/me — authenticated doctor's own profile
 router.get("/doctors/me", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const [row] = await db
     .select()
@@ -46,24 +51,28 @@ router.get("/doctors/me", async (req, res) => {
     .where(eq(doctorProfilesTable.user_id, userId))
     .limit(1);
 
-  if (!row) return res.status(404).json({ error: "Not found" });
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
 });
 
 // PUT /api/doctors/me — upsert doctor's own profile
 router.put("/doctors/me", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const parsed = UpsertMyDoctorProfileBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
+
+  type InsertRow = typeof doctorProfilesTable.$inferInsert;
+  type UpdateRow = typeof doctorProfilesTable.$inferSelect;
+  const data = omitNullValues(parsed.data as Record<string, unknown>) as Partial<UpdateRow>;
 
   const [row] = await db
     .insert(doctorProfilesTable)
-    .values({ ...parsed.data, user_id: userId })
+    .values({ user_id: userId, full_name: parsed.data.full_name, ...data } as InsertRow)
     .onConflictDoUpdate({
       target: doctorProfilesTable.user_id,
-      set: parsed.data,
+      set: data,
     })
     .returning();
 
@@ -73,7 +82,7 @@ router.put("/doctors/me", async (req, res) => {
 // GET /api/doctors/me/availability
 router.get("/doctors/me/availability", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const rows = await db
     .select()
@@ -87,10 +96,10 @@ router.get("/doctors/me/availability", async (req, res) => {
 // POST /api/doctors/me/availability
 router.post("/doctors/me/availability", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const parsed = AddAvailabilitySlotBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
   const [row] = await db
     .insert(doctorAvailabilityTable)
@@ -103,14 +112,14 @@ router.post("/doctors/me/availability", async (req, res) => {
 // DELETE /api/doctors/me/availability/:id
 router.delete("/doctors/me/availability/:id", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const [deleted] = await db
     .delete(doctorAvailabilityTable)
     .where(and(eq(doctorAvailabilityTable.id, req.params.id), eq(doctorAvailabilityTable.user_id, userId)))
     .returning();
 
-  if (!deleted) return res.status(404).json({ error: "Not found" });
+  if (!deleted) { res.status(404).json({ error: "Not found" }); return; }
   res.status(204).end();
 });
 
@@ -127,7 +136,7 @@ router.get("/doctors/:id/availability", async (req, res) => {
 // GET /api/doctors/me/bookings — doctor's own bookings
 router.get("/doctors/me/bookings", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const rows = await db
     .select()
@@ -141,7 +150,7 @@ router.get("/doctors/me/bookings", async (req, res) => {
 // GET /api/doctors/me/claims
 router.get("/doctors/me/claims", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const rows = await db
     .select()
@@ -154,10 +163,10 @@ router.get("/doctors/me/claims", async (req, res) => {
 // POST /api/doctors/me/claims
 router.post("/doctors/me/claims", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const parsed = CreateClinicClaimBody.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
   const [row] = await db
     .insert(clinicClaimsTable)
@@ -170,14 +179,14 @@ router.post("/doctors/me/claims", async (req, res) => {
 // DELETE /api/doctors/me/claims/:id
 router.delete("/doctors/me/claims/:id", async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const [deleted] = await db
     .delete(clinicClaimsTable)
     .where(and(eq(clinicClaimsTable.id, req.params.id), eq(clinicClaimsTable.user_id, userId)))
     .returning();
 
-  if (!deleted) return res.status(403).json({ error: "Forbidden or not found" });
+  if (!deleted) { res.status(403).json({ error: "Forbidden or not found" }); return; }
   res.status(204).end();
 });
 
@@ -188,7 +197,7 @@ router.get("/doctors/:id", async (req, res) => {
     .from(doctorProfilesTable)
     .where(eq(doctorProfilesTable.id, req.params.id))
     .limit(1);
-  if (!row) return res.status(404).json({ error: "Not found" });
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
 });
 
