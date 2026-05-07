@@ -16,18 +16,16 @@ _Replace the heading above with the project's name, and this line with one sente
 Follow these steps in order when setting up on a brand-new database:
 
 1. **Provision a PostgreSQL database** and set `DATABASE_URL` in the environment.
-2. **Run migrations** — creates all tables from the Drizzle schema:
+2. **Run the setup command** — migrates all tables then seeds sample data (idempotent: seed is skipped if data already exists):
    ```
-   pnpm --filter @workspace/db run migrate
+   pnpm --filter @workspace/db run setup
    ```
-3. **Seed sample data** — populates listings, an admin user role, and a doctor profile:
-   ```
-   pnpm --filter @workspace/db run seed
-   ```
-4. **Start the API server:**
+3. **Start the API server:**
    ```
    pnpm --filter @workspace/api-server run dev
    ```
+
+The `setup` command is safe to re-run: migrations are applied incrementally and the seed is skipped if listings already exist. Use it on every fresh deploy.
 
 ### Existing database (already set up via `push`)
 
@@ -37,7 +35,10 @@ If your database was set up using `drizzle-kit push` before migration tracking w
 pnpm --filter @workspace/db run stamp-migrations
 ```
 
-Then run the seed as usual.
+Then run the normal setup command — the seed will be skipped automatically if listings already exist:
+```
+pnpm --filter @workspace/db run setup
+```
 
 ### Adding schema changes
 

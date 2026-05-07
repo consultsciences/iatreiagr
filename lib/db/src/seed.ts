@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import pg from "pg";
 import * as schema from "./schema";
 
@@ -254,6 +254,17 @@ async function seedDoctorProfile() {
 
 async function main() {
   console.log("Starting seed…");
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.listingsTable);
+
+  if (count > 0) {
+    console.log(`  → ${count} listings already exist — skipping seed.`);
+    await pool.end();
+    return;
+  }
+
   await seedListings();
   await seedAdminRole();
   await seedDoctorProfile();
