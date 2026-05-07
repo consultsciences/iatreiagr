@@ -145,7 +145,7 @@ export const LeafletMap = ({
   );
 };
 
-const ResizeFix = ({ wrapperRef }: { wrapperRef: React.RefObject<HTMLDivElement> }) => {
+const ResizeFix = ({ wrapperRef }: { wrapperRef: React.RefObject<HTMLDivElement | null> }) => {
   const map = useMap();
   useEffect(() => {
     // Initial nudge after mount
