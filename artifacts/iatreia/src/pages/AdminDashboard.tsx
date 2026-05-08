@@ -207,6 +207,14 @@ const claimStatusLabel = (status: string) => {
   }
 };
 
+const LISTING_CATEGORIES: { value: string; label: string }[] = [
+  { value: "spaces", label: "Χώροι" },
+  { value: "equipment", label: "Εξοπλισμός" },
+  { value: "jobs", label: "Εργασία" },
+  { value: "supplies", label: "Αναλώσιμα" },
+  { value: "services", label: "Υπηρεσίες" },
+];
+
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const { session } = useClerk();
@@ -238,6 +246,9 @@ const AdminDashboard = () => {
   const [pendingListings, setPendingListings] = useState<PendingListing[]>([]);
   const [listingsLoading, setListingsLoading] = useState(true);
   const [listingsBusyId, setListingsBusyId] = useState<string | null>(null);
+  const [listingsSearchInput, setListingsSearchInput] = useState("");
+  const [listingsSearch, setListingsSearch] = useState("");
+  const [listingsCategoryFilter, setListingsCategoryFilter] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorProfile | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<ClinicClaim | null>(null);
   const [lowCompletenessOnly, setLowCompletenessOnly] = useState(false);
@@ -321,6 +332,17 @@ const AdminDashboard = () => {
       window.localStorage.setItem(CSV_DATE_FORMAT_KEY, csvDateFormat);
     }
   }, [csvDateFormat]);
+  const listingsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (listingsDebounceRef.current) clearTimeout(listingsDebounceRef.current);
+    listingsDebounceRef.current = setTimeout(() => {
+      setListingsSearch(listingsSearchInput.trim());
+    }, 250);
+    return () => {
+      if (listingsDebounceRef.current) clearTimeout(listingsDebounceRef.current);
+    };
+  }, [listingsSearchInput]);
+
   const auditDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (auditDebounceRef.current) clearTimeout(auditDebounceRef.current);
@@ -705,6 +727,18 @@ const AdminDashboard = () => {
     void loadAuditLog();
   };
 
+  const filteredListings = useMemo(() => {
+    let result = pendingListings;
+    if (listingsCategoryFilter) {
+      result = result.filter((l) => l.category === listingsCategoryFilter);
+    }
+    if (listingsSearch) {
+      const q = listingsSearch.toLowerCase();
+      result = result.filter((l) => l.title.toLowerCase().includes(q));
+    }
+    return result;
+  }, [pendingListings, listingsCategoryFilter, listingsSearch]);
+
   if (authLoading || isAdmin === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1053,6 +1087,29 @@ const AdminDashboard = () => {
                   {listingsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ανανέωση"}
                 </Button>
               </CardHeader>
+              <div className="px-6 pb-4 flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    className="pl-8 h-8 text-sm"
+                    placeholder="Αναζήτηση τίτλου…"
+                    value={listingsSearchInput}
+                    onChange={(e) => setListingsSearchInput(e.target.value)}
+                  />
+                </div>
+                <ToggleGroup
+                  type="single"
+                  value={listingsCategoryFilter}
+                  onValueChange={(v) => setListingsCategoryFilter(v)}
+                  className="flex-wrap justify-start"
+                >
+                  {LISTING_CATEGORIES.map((cat) => (
+                    <ToggleGroupItem key={cat.value} value={cat.value} className="h-8 text-xs px-3">
+                      {cat.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
               <CardContent className="p-0">
                 {listingsLoading && pendingListings.length === 0 ? (
                   <Table>
@@ -1088,6 +1145,10 @@ const AdminDashboard = () => {
                   <p className="p-6 text-sm text-muted-foreground">
                     Δεν υπάρχουν εκκρεμείς αγγελίες προς αξιολόγηση.
                   </p>
+                ) : filteredListings.length === 0 ? (
+                  <p className="p-6 text-sm text-muted-foreground">
+                    Δεν βρέθηκαν αγγελίες που να ταιριάζουν με τα φίλτρα.
+                  </p>
                 ) : (
                   <div className={cn("relative transition-opacity duration-200", listingsLoading && "opacity-60 pointer-events-none")} aria-busy={listingsLoading}>
                     <Table>
@@ -1102,7 +1163,7 @@ const AdminDashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {pendingListings.map((listing) => (
+                        {filteredListings.map((listing) => (
                           <TableRow key={listing.id}>
                             <TableCell className="font-medium max-w-[220px] truncate" title={listing.title}>
                               {listing.title}

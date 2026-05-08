@@ -144,13 +144,19 @@ router.post("/admin/audit-log", requireAdmin, async (req, res) => {
   res.status(201).end();
 });
 
-// GET /api/admin/listings — list listings by status (default: pending)
+// GET /api/admin/listings — list listings by status (default: pending), optionally filtered by search/category
 router.get("/admin/listings", requireAdmin, async (req, res) => {
-  const { status = "pending" } = req.query as Record<string, string>;
+  const { status = "pending", search, category } = req.query as Record<string, string>;
+  const conditions: SQL[] = [eq(listingsTable.status, status)];
+  if (category) conditions.push(eq(listingsTable.category, category));
+  if (search) {
+    const clause = ilike(listingsTable.title, `%${search}%`);
+    conditions.push(clause);
+  }
   const rows = await db
     .select()
     .from(listingsTable)
-    .where(eq(listingsTable.status, status))
+    .where(and(...conditions))
     .orderBy(desc(listingsTable.created_at));
   res.json(rows);
 });
