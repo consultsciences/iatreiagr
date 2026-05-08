@@ -7,7 +7,20 @@ const router = Router();
 
 const KNOWN_CATEGORIES = ["spaces", "equipment", "jobs", "supplies", "services"] as const;
 
-router.get("/listings/counts", async (req, res) => {
+const COUNTS_CACHE_TTL_MS = 60_000;
+
+interface CountsCache {
+  data: Record<string, number>;
+  expiresAt: number;
+}
+
+let countsCache: CountsCache | null = null;
+
+export function invalidateCountsCache(): void {
+  countsCache = null;
+}
+
+async function fetchCountsFromDb(): Promise<Record<string, number>> {
   const rows = await db
     .select({ category: listingsTable.category, count: count() })
     .from(listingsTable)
@@ -22,7 +35,26 @@ router.get("/listings/counts", async (req, res) => {
     counts[row.category] = Number(row.count);
     total += Number(row.count);
   }
-  res.json({ ...counts, total });
+  counts.total = total;
+  return counts;
+}
+
+router.get("/listings/counts", async (req, res) => {
+  const now = Date.now();
+
+  if (countsCache && now < countsCache.expiresAt) {
+    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("X-Cache", "HIT");
+    res.json(countsCache.data);
+    return;
+  }
+
+  const data = await fetchCountsFromDb();
+  countsCache = { data, expiresAt: now + COUNTS_CACHE_TTL_MS };
+
+  res.setHeader("Cache-Control", "public, max-age=60");
+  res.setHeader("X-Cache", "MISS");
+  res.json(data);
 });
 
 router.get("/listings", async (req, res) => {

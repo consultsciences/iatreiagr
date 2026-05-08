@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
-import { doctorProfilesTable, clinicClaimsTable, clinicClaimAuditLogTable, userRolesTable } from "@workspace/db";
+import { doctorProfilesTable, clinicClaimsTable, clinicClaimAuditLogTable, userRolesTable, listingsTable } from "@workspace/db";
 import { eq, and, desc, ilike, or, sql, gte, lte, like, SQL } from "drizzle-orm";
 import { AdminUpdateDoctorBody, AdminUpdateClaimBody, AdminCreateAuditLogBody } from "@workspace/api-zod";
 import type { DoctorProfile, ClinicClaim, ClinicClaimAuditLog } from "@workspace/db";
+import { invalidateCountsCache } from "./listings";
 
 const router = Router();
 
@@ -155,6 +156,33 @@ router.post("/admin/audit-log", async (req, res) => {
   });
 
   res.status(201).end();
+});
+
+// PATCH /api/admin/listings/:id — update listing status; invalidates counts cache when publishing
+router.patch("/admin/listings/:id", async (req, res) => {
+  const { userId } = getAuth(req);
+  if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const { status } = req.body as { status?: string };
+  const VALID_STATUSES = ["published", "draft", "archived"] as const;
+  if (!status || !VALID_STATUSES.includes(status as typeof VALID_STATUSES[number])) {
+    res.status(400).json({ error: "status must be one of: published, draft, archived" });
+    return;
+  }
+
+  const [row] = await db
+    .update(listingsTable)
+    .set({ status })
+    .where(eq(listingsTable.id, req.params.id))
+    .returning();
+
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+
+  if (status === "published") {
+    invalidateCountsCache();
+  }
+
+  res.json(row);
 });
 
 export default router;
