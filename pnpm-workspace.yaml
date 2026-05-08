@@ -158,3 +158,5 @@ overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+  # Security: fix GHSA-2w69-qvjg-hvjx (@remix-run/router vulnerability)
+  "@remix-run/router": "1.23.2"
