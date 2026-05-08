@@ -62,7 +62,7 @@ describe("ClaimsTable skeleton parity", () => {
     // tables animate in lockstep with the rest of the dashboard.
     const skeletons = container.querySelectorAll("div.bg-muted");
     expect(skeletons.length).toBeGreaterThan(0);
-    skeletons.forEach((el) => {
+    skeletons.forEach((el: Element) => {
       expect(el.className).toContain("before:animate-shimmer");
     });
   });
