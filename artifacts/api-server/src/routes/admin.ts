@@ -180,7 +180,12 @@ router.patch("/admin/listings/:id", requireAdmin, async (req, res) => {
 
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-  invalidateCountsCache("PATCH /api/admin/listings/:id");
+  const affectsPublishedCount =
+    newStatus === "published" ||
+    (previousStatus === "published" && newStatus !== "published");
+  if (affectsPublishedCount) {
+    invalidateCountsCache("PATCH /api/admin/listings/:id");
+  }
 
   const isStatusTransition = newStatus !== previousStatus;
   const isNotifiableStatus = newStatus === "published" || newStatus === "archived";
