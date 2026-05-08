@@ -7,7 +7,7 @@
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "typecheck": "tsc -p ../../lib/types/tsconfig.json && tsc -p ../../lib/api-client-react/tsconfig.json && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "lint": "eslint src",
     "test": "vitest run --config vitest.config.ts"
