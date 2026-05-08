@@ -1,24 +1,22 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { listingsTable } from "@workspace/db";
-import { eq, and, desc, count } from "drizzle-orm";
+import { listingsTable, listingCountsCacheTable } from "@workspace/db";
+import { eq, and, desc, count, sql } from "drizzle-orm";
 
 const router = Router();
 
 const KNOWN_CATEGORIES = ["spaces", "equipment", "jobs", "supplies", "services"] as const;
 
 const COUNTS_CACHE_TTL_MS = 60_000;
+const IN_PROCESS_TTL_MS = 10_000;
+const CACHE_ROW_ID = 1;
 
-interface CountsCache {
+interface InProcessCache {
   data: Record<string, number>;
   expiresAt: number;
 }
 
-let countsCache: CountsCache | null = null;
-
-export function invalidateCountsCache(): void {
-  countsCache = null;
-}
+let inProcessCache: InProcessCache | null = null;
 
 async function fetchCountsFromDb(): Promise<Record<string, number>> {
   const rows = await db
@@ -39,18 +37,68 @@ async function fetchCountsFromDb(): Promise<Record<string, number>> {
   return counts;
 }
 
+async function getCountsFromSharedCache(): Promise<Record<string, number> | null> {
+  const [row] = await db
+    .select()
+    .from(listingCountsCacheTable)
+    .where(eq(listingCountsCacheTable.id, CACHE_ROW_ID))
+    .limit(1);
+
+  if (!row) return null;
+
+  const ageMs = Date.now() - new Date(row.updated_at).getTime();
+  if (ageMs > COUNTS_CACHE_TTL_MS) return null;
+
+  return row.counts as Record<string, number>;
+}
+
+async function writeCountsToSharedCache(counts: Record<string, number>): Promise<void> {
+  await db
+    .insert(listingCountsCacheTable)
+    .values({ id: CACHE_ROW_ID, counts, updated_at: new Date() })
+    .onConflictDoUpdate({
+      target: listingCountsCacheTable.id,
+      set: { counts, updated_at: new Date() },
+    });
+}
+
+async function deleteSharedCache(): Promise<void> {
+  await db
+    .delete(listingCountsCacheTable)
+    .where(eq(listingCountsCacheTable.id, CACHE_ROW_ID));
+}
+
+export function invalidateCountsCache(): void {
+  inProcessCache = null;
+  deleteSharedCache().catch((err) => {
+    console.error("[counts-cache] failed to delete shared cache row:", err);
+  });
+}
+
 router.get("/listings/counts", async (req, res) => {
   const now = Date.now();
 
-  if (countsCache && now < countsCache.expiresAt) {
+  if (inProcessCache && now < inProcessCache.expiresAt) {
     res.setHeader("Cache-Control", "public, max-age=60");
-    res.setHeader("X-Cache", "HIT");
-    res.json(countsCache.data);
+    res.setHeader("X-Cache", "HIT-PROCESS");
+    res.json(inProcessCache.data);
+    return;
+  }
+
+  const shared = await getCountsFromSharedCache();
+  if (shared) {
+    inProcessCache = { data: shared, expiresAt: now + IN_PROCESS_TTL_MS };
+    res.setHeader("Cache-Control", "public, max-age=60");
+    res.setHeader("X-Cache", "HIT-DB");
+    res.json(shared);
     return;
   }
 
   const data = await fetchCountsFromDb();
-  countsCache = { data, expiresAt: now + COUNTS_CACHE_TTL_MS };
+  inProcessCache = { data, expiresAt: now + IN_PROCESS_TTL_MS };
+  writeCountsToSharedCache(data).catch((err) => {
+    console.error("[counts-cache] failed to write shared cache:", err);
+  });
 
   res.setHeader("Cache-Control", "public, max-age=60");
   res.setHeader("X-Cache", "MISS");

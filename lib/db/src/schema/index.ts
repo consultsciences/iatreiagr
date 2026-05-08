@@ -5,3 +5,4 @@ export * from "./doctorAvailability";
 export * from "./clinicClaims";
 export * from "./inquiries";
 export * from "./userRoles";
+export * from "./listingCountsCache";

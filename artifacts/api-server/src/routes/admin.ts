@@ -178,9 +178,7 @@ router.patch("/admin/listings/:id", async (req, res) => {
 
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-  if (status === "published") {
-    invalidateCountsCache();
-  }
+  invalidateCountsCache();
 
   res.json(row);
 });
