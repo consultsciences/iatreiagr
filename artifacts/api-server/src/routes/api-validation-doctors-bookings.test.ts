@@ -421,6 +421,50 @@ describe("POST /api/bookings", () => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/bookings/:id/cancel — cancel an existing booking
+// ---------------------------------------------------------------------------
+describe("POST /api/bookings/:id/cancel", () => {
+  const OWNED_BOOKING = { ...MOCK_BOOKING, user_id: "test-user-id", status: "confirmed" };
+  const OTHER_USER_BOOKING = { ...MOCK_BOOKING, user_id: "another-user-id", status: "confirmed" };
+  const CANCELLED_BOOKING = { ...OWNED_BOOKING, status: "cancelled", cancelled_at: new Date().toISOString() };
+
+  it("returns 401 when not authenticated and never reads or writes to DB", async () => {
+    mockGetAuth.mockReturnValue({ userId: null });
+    const app = buildApp();
+    const res = await request(app).post("/api/bookings/booking-1/cancel");
+    expect(res.status).toBe(401);
+    expect(mockDb.select).not.toHaveBeenCalled();
+    expect(mockDb.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the booking does not exist and never writes to DB", async () => {
+    mockDb.select.mockReturnValue(makeChain([]));
+    const app = buildApp();
+    const res = await request(app).post("/api/bookings/nonexistent-booking/cancel");
+    expect(res.status).toBe(404);
+    expect(mockDb.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when the booking belongs to another user and never writes to DB", async () => {
+    mockDb.select.mockReturnValue(makeChain([OTHER_USER_BOOKING]));
+    const app = buildApp();
+    const res = await request(app).post("/api/bookings/booking-1/cancel");
+    expect(res.status).toBe(403);
+    expect(mockDb.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 200 with status cancelled for a valid owned booking and writes to DB exactly once", async () => {
+    mockDb.select.mockReturnValue(makeChain([OWNED_BOOKING]));
+    mockDb.update.mockReturnValue(makeChain([CANCELLED_BOOKING]));
+    const app = buildApp();
+    const res = await request(app).post("/api/bookings/booking-1/cancel");
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("status", "cancelled");
+    expect(mockDb.update).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // PATCH /api/admin/doctors/:id — admin update of a doctor profile
 // ---------------------------------------------------------------------------
 describe("PATCH /api/admin/doctors/:id", () => {
