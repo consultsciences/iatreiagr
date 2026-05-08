@@ -6,11 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { privateClinics } from "@/data/privateClinics";
 
-export interface ClaimRecord {
-  id: string;
-  clinic_id: string;
-  status: string;
-}
+import type { ClinicClaimRecord as ClaimRecord } from "@workspace/types";
+export type { ClaimRecord };
 
 interface Props {
   claims: ClaimRecord[];

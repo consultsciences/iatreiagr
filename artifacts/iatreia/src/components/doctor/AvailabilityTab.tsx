@@ -4,17 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { AvailabilitySlot as AvailabilitySlotRecord } from "@workspace/types";
+
+export type { AvailabilitySlotRecord };
 
 const DAYS = ["Κυριακή", "Δευτέρα", "Τρίτη", "Τετάρτη", "Πέμπτη", "Παρασκευή", "Σάββατο"];
 
 interface Slot { day_of_week: number; start_time: string; end_time: string; }
-
-export interface AvailabilitySlotRecord {
-  id: string;
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
-}
 
 interface Props {
   availability: AvailabilitySlotRecord[];

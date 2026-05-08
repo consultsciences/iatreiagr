@@ -178,6 +178,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/types':
+        specifier: workspace:*
+        version: link:../../lib/types
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -387,6 +390,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/types':
+        specifier: workspace:*
+        version: link:../../lib/types
       autoprefixer:
         specifier: ^10.5.0
         version: 10.5.0(postcss@8.5.14)
@@ -709,6 +715,8 @@ importers:
       tsx:
         specifier: 'catalog:'
         version: 4.21.0
+
+  lib/types: {}
 
   scripts:
     devDependencies:

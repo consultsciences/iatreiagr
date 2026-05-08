@@ -5,7 +5,7 @@ const { mockGetAuth, mockDb } = vi.hoisted(() => {
   const mockDb = {
     select: vi.fn(),
   };
-  const mockGetAuth = vi.fn(() => ({ userId: "admin-user-id" }));
+  const mockGetAuth = vi.fn<() => { userId: string | null | undefined }>(() => ({ userId: "admin-user-id" }));
   return { mockGetAuth, mockDb };
 });
 

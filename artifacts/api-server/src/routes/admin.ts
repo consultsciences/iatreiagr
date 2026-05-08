@@ -4,7 +4,8 @@ import { db } from "@workspace/db";
 import { doctorProfilesTable, clinicClaimsTable, clinicClaimAuditLogTable, userRolesTable, listingsTable } from "@workspace/db";
 import { eq, and, desc, ilike, or, sql, gte, lte, like, SQL } from "drizzle-orm";
 import { AdminUpdateDoctorBody, AdminUpdateClaimBody, AdminCreateAuditLogBody, AdminUpdateListingStatusBody } from "@workspace/api-zod";
-import type { DoctorProfile, ClinicClaim, ClinicClaimAuditLog } from "@workspace/db";
+import type { DoctorProfile as DbDoctorProfile } from "@workspace/db";
+import type { DoctorProfile, ClinicClaim, AuditLogEntry } from "@workspace/types";
 import { invalidateCountsCache } from "./listings";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { notifySellerOfListingStatusChange } from "../lib/listingEmail";
@@ -50,7 +51,8 @@ router.get("/admin/doctors", requireAdmin, async (req, res) => {
     db.select({ count: sql<number>`count(*)` }).from(doctorProfilesTable).where(where),
   ]);
 
-  res.json({ doctors: rows, total: Number(countResult[0]?.count ?? 0) });
+  // Drizzle Date fields are a structural subtype of Date|string defined in @workspace/types
+  res.json({ doctors: rows satisfies DoctorProfile[], total: Number(countResult[0]?.count ?? 0) });
 });
 
 // PATCH /api/admin/doctors/:id
@@ -58,19 +60,20 @@ router.patch("/admin/doctors/:id", requireAdmin, async (req, res) => {
   const parsed = AdminUpdateDoctorBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
-  const patch: Partial<DoctorProfile> = {};
+  const patch: Partial<DbDoctorProfile> = {};
   for (const [k, v] of Object.entries(parsed.data)) {
     if (v !== undefined) (patch as Record<string, unknown>)[k] = v;
   }
 
+  const doctorId = req.params.id as string;
   const [row] = await db
     .update(doctorProfilesTable)
     .set(patch)
-    .where(eq(doctorProfilesTable.id, req.params.id))
+    .where(eq(doctorProfilesTable.id, doctorId))
     .returning();
 
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(row);
+  res.json(row satisfies DoctorProfile);
 });
 
 // GET /api/admin/claims
@@ -85,7 +88,7 @@ router.get("/admin/claims", requireAdmin, async (req, res) => {
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(clinicClaimsTable.created_at));
 
-  res.json(rows);
+  res.json(rows satisfies ClinicClaim[]);
 });
 
 // PATCH /api/admin/claims/:id
@@ -93,14 +96,15 @@ router.patch("/admin/claims/:id", requireAdmin, async (req, res) => {
   const parsed = AdminUpdateClaimBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
+  const claimId = req.params.id as string;
   const [row] = await db
     .update(clinicClaimsTable)
     .set({ status: parsed.data.status, decision_note: parsed.data.decision_note ?? null })
-    .where(and(eq(clinicClaimsTable.id, req.params.id), eq(clinicClaimsTable.status, "pending")))
+    .where(and(eq(clinicClaimsTable.id, claimId), eq(clinicClaimsTable.status, "pending")))
     .returning();
 
   if (!row) { res.status(404).json({ error: "Not found or not pending" }); return; }
-  res.json(row);
+  res.json(row satisfies ClinicClaim);
 });
 
 // GET /api/admin/audit-log
@@ -122,7 +126,7 @@ router.get("/admin/audit-log", requireAdmin, async (req, res) => {
     .orderBy(desc(clinicClaimAuditLogTable.created_at))
     .limit(lim);
 
-  res.json(rows);
+  res.json(rows satisfies AuditLogEntry[]);
 });
 
 // POST /api/admin/audit-log
@@ -145,10 +149,11 @@ router.patch("/admin/listings/:id", requireAdmin, async (req, res) => {
   const parsed = AdminUpdateListingStatusBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
+  const listingId = req.params.id as string;
   const [existing] = await db
     .select({ status: listingsTable.status })
     .from(listingsTable)
-    .where(eq(listingsTable.id, req.params.id))
+    .where(eq(listingsTable.id, listingId))
     .limit(1);
 
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
@@ -159,7 +164,7 @@ router.patch("/admin/listings/:id", requireAdmin, async (req, res) => {
   const [row] = await db
     .update(listingsTable)
     .set({ status: newStatus })
-    .where(eq(listingsTable.id, req.params.id))
+    .where(eq(listingsTable.id, listingId))
     .returning();
 
   if (!row) { res.status(404).json({ error: "Not found" }); return; }

@@ -6,18 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export type Profile = {
-  full_name: string;
-  specialty: string | null;
-  bio: string | null;
-  photo_url: string | null;
-  address: string | null;
-  city: string | null;
-  phone: string | null;
-  email: string | null;
-  clinic_id: string | null;
-  is_published: boolean;
-};
+import type { DoctorProfileForm as Profile } from "@workspace/types";
+export type { Profile };
 
 interface Props {
   profile: Profile;

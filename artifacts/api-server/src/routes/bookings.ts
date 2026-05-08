@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { bookingsTable } from "@workspace/db";
 import { eq, and, desc, isNull } from "drizzle-orm";
 import { CreateBookingBody } from "@workspace/api-zod";
+import type { PatientBooking } from "@workspace/types";
 
 const router = Router();
 
@@ -32,7 +33,7 @@ router.get("/bookings", async (req, res) => {
     .where(eq(bookingsTable.user_id, userId))
     .orderBy(desc(bookingsTable.appointment_date), desc(bookingsTable.appointment_slot));
 
-  res.json(rows);
+  res.json(rows satisfies PatientBooking[]);
 });
 
 // POST /api/bookings — create a booking (public, user_id always from auth)
@@ -52,7 +53,7 @@ router.post("/bookings", async (req, res) => {
     })
     .returning();
 
-  res.status(201).json(row);
+  res.status(201).json(row satisfies PatientBooking);
 });
 
 // POST /api/bookings/:id/cancel
@@ -76,7 +77,7 @@ router.post("/bookings/:id/cancel", async (req, res) => {
     .where(eq(bookingsTable.id, id))
     .returning();
 
-  res.json(updated);
+  res.json(updated satisfies PatientBooking);
 });
 
 export default router;

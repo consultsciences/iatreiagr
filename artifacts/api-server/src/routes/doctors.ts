@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { doctorProfilesTable, doctorAvailabilityTable, bookingsTable, clinicClaimsTable } from "@workspace/db";
 import { eq, and, desc, asc, or, ilike, sql, SQL } from "drizzle-orm";
 import { UpsertMyDoctorProfileBody, AddAvailabilitySlotBody, CreateClinicClaimBody } from "@workspace/api-zod";
+import type { DoctorProfile, AvailabilitySlot, DoctorBooking, ClinicClaim, ClinicClaimRecord } from "@workspace/types";
 
 const router = Router();
 
@@ -37,7 +38,7 @@ router.get("/doctors", async (req, res) => {
     db.select({ count: sql<number>`count(*)` }).from(doctorProfilesTable).where(and(...conditions)),
   ]);
 
-  res.json({ doctors: rows, total: Number(countResult[0]?.count ?? 0) });
+  res.json({ doctors: rows satisfies DoctorProfile[], total: Number(countResult[0]?.count ?? 0) });
 });
 
 // GET /api/doctors/me — authenticated doctor's own profile
@@ -52,7 +53,7 @@ router.get("/doctors/me", async (req, res) => {
     .limit(1);
 
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(row);
+  res.json(row satisfies DoctorProfile);
 });
 
 // PUT /api/doctors/me — upsert doctor's own profile
@@ -76,7 +77,7 @@ router.put("/doctors/me", async (req, res) => {
     })
     .returning();
 
-  res.json(row);
+  res.json(row satisfies DoctorProfile);
 });
 
 // GET /api/doctors/me/availability
@@ -90,7 +91,7 @@ router.get("/doctors/me/availability", async (req, res) => {
     .where(eq(doctorAvailabilityTable.user_id, userId))
     .orderBy(asc(doctorAvailabilityTable.day_of_week));
 
-  res.json(rows);
+  res.json(rows satisfies AvailabilitySlot[]);
 });
 
 // POST /api/doctors/me/availability
@@ -106,7 +107,7 @@ router.post("/doctors/me/availability", async (req, res) => {
     .values({ ...parsed.data, user_id: userId })
     .returning();
 
-  res.status(201).json(row);
+  res.status(201).json(row satisfies AvailabilitySlot);
 });
 
 // DELETE /api/doctors/me/availability/:id
@@ -130,7 +131,7 @@ router.get("/doctors/:id/availability", async (req, res) => {
     .from(doctorAvailabilityTable)
     .where(eq(doctorAvailabilityTable.user_id, req.params.id))
     .orderBy(asc(doctorAvailabilityTable.day_of_week));
-  res.json(rows);
+  res.json(rows satisfies AvailabilitySlot[]);
 });
 
 // GET /api/doctors/me/bookings — doctor's own bookings
@@ -144,7 +145,7 @@ router.get("/doctors/me/bookings", async (req, res) => {
     .where(eq(bookingsTable.doctor_id, userId))
     .orderBy(desc(bookingsTable.appointment_date));
 
-  res.json(rows);
+  res.json(rows satisfies DoctorBooking[]);
 });
 
 // GET /api/doctors/me/claims
@@ -157,7 +158,7 @@ router.get("/doctors/me/claims", async (req, res) => {
     .from(clinicClaimsTable)
     .where(eq(clinicClaimsTable.user_id, userId));
 
-  res.json(rows);
+  res.json(rows satisfies ClinicClaimRecord[]);
 });
 
 // POST /api/doctors/me/claims
@@ -173,7 +174,7 @@ router.post("/doctors/me/claims", async (req, res) => {
     .values({ ...parsed.data, user_id: userId })
     .returning();
 
-  res.status(201).json(row);
+  res.status(201).json(row satisfies ClinicClaim);
 });
 
 // DELETE /api/doctors/me/claims/:id
@@ -198,7 +199,7 @@ router.get("/doctors/:userId", async (req, res) => {
     .where(and(eq(doctorProfilesTable.user_id, req.params.userId), eq(doctorProfilesTable.is_published, true)))
     .limit(1);
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(row);
+  res.json(row satisfies DoctorProfile);
 });
 
 export default router;

@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { privateClinics } from "@/data/privateClinics";
 import { cn } from "@/lib/utils";
+import type { DoctorProfile, ClinicClaim, AuditLogEntry } from "@workspace/types";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 const PAGE_SIZE = 20;
@@ -111,45 +112,6 @@ const CompletenessIndicator = ({
       )}
     </div>
   );
-};
-
-type DoctorProfile = {
-  id: string;
-  user_id: string;
-  full_name: string;
-  specialty: string | null;
-  city: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  bio: string | null;
-  photo_url: string | null;
-  clinic_id: string | null;
-  subscription_tier: string;
-  is_published: boolean;
-  verified: boolean;
-  verified_at: string | null;
-  onboarding_completed_at: string | null;
-  created_at: string;
-};
-
-type ClinicClaim = {
-  id: string;
-  clinic_id: string;
-  user_id: string;
-  status: string;
-  created_at: string;
-  decision_note: string | null;
-};
-
-type AuditLogEntry = {
-  id: string;
-  claim_id: string;
-  admin_id: string;
-  decision: string;
-  note: string | null;
-  error_detail: string | null;
-  created_at: string;
 };
 
 const FALLBACK_ERROR_DETAIL = "Άγνωστο σφάλμα — δεν παρασχέθηκε λεπτομέρεια από τον server.";

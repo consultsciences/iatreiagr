@@ -1,15 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-export interface DoctorBooking {
-  id: string;
-  patient_name: string;
-  appointment_date: string;
-  appointment_slot: string;
-  visit_type: string;
-  status: string;
-  reason?: string | null;
-}
+import type { DoctorBooking } from "@workspace/types";
+export type { DoctorBooking };
 
 interface Props { bookings: DoctorBooking[]; }
 

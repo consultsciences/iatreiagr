@@ -16,25 +16,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useClerk } from "@clerk/clerk-react";
+import type { PatientBooking as Booking } from "@workspace/types";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
-
-interface Booking {
-  id: string;
-  confirmation_code: string;
-  doctor_id: string;
-  doctor_name: string;
-  doctor_specialty: string;
-  doctor_address: string | null;
-  appointment_date: string;
-  appointment_slot: string;
-  visit_type: "in-person" | "telehealth";
-  price: number;
-  reason: string | null;
-  created_at: string;
-  status: "active" | "cancelled";
-  cancelled_at: string | null;
-}
 
 const buildAppointmentDate = (b: Pick<Booking, "appointment_date" | "appointment_slot">) => {
   const [h, m] = b.appointment_slot.split(":").map(Number);
