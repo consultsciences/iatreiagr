@@ -146,19 +146,25 @@ router.post("/admin/audit-log", requireAdmin, async (req, res) => {
 
 // GET /api/admin/listings — list listings by status (default: pending), optionally filtered by search/category
 router.get("/admin/listings", requireAdmin, async (req, res) => {
-  const { status = "pending", search, category } = req.query as Record<string, string>;
+  const { status = "pending", search, category, limit = "20", offset = "0" } = req.query as Record<string, string>;
+  const lim = Math.min(parseInt(limit) || 20, 200);
+  const off = parseInt(offset) || 0;
+
   const conditions: SQL[] = [eq(listingsTable.status, status)];
   if (category) conditions.push(eq(listingsTable.category, category));
   if (search) {
     const clause = ilike(listingsTable.title, `%${search}%`);
     conditions.push(clause);
   }
-  const rows = await db
-    .select()
-    .from(listingsTable)
-    .where(and(...conditions))
-    .orderBy(desc(listingsTable.created_at));
-  res.json(rows);
+
+  const where = and(...conditions);
+
+  const [rows, countResult] = await Promise.all([
+    db.select().from(listingsTable).where(where).orderBy(desc(listingsTable.created_at)).limit(lim).offset(off),
+    db.select({ count: sql<number>`count(*)` }).from(listingsTable).where(where),
+  ]);
+
+  res.json({ listings: rows, total: Number(countResult[0]?.count ?? 0) });
 });
 
 // PATCH /api/admin/listings/:id — update listing status; invalidates counts cache when publishing

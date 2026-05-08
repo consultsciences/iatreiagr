@@ -244,6 +244,8 @@ const AdminDashboard = () => {
     created_at: Date | string;
   };
   const [pendingListings, setPendingListings] = useState<PendingListing[]>([]);
+  const [listingsTotal, setListingsTotal] = useState(0);
+  const [listingsPage, setListingsPage] = useState(0);
   const [listingsLoading, setListingsLoading] = useState(true);
   const [listingsBusyId, setListingsBusyId] = useState<string | null>(null);
   const [listingsSearchInput, setListingsSearchInput] = useState("");
@@ -433,15 +435,24 @@ const AdminDashboard = () => {
     setClaimsLoading(false);
   }, [session]);
 
-  const loadPendingListings = useCallback(async () => {
+  const loadPendingListings = useCallback(async (page: number) => {
     setListingsLoading(true);
     try {
       const token = await session?.getToken();
-      const res = await fetch(`${BASE}/api/admin/listings?status=pending`, {
+      const params = new URLSearchParams({
+        status: "pending",
+        limit: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+      });
+      if (listingsSearch) params.set("search", listingsSearch);
+      if (listingsCategoryFilter) params.set("category", listingsCategoryFilter);
+      const res = await fetch(`${BASE}/api/admin/listings?${params}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setPendingListings(await res.json());
+      const { listings, total } = await res.json();
+      setPendingListings(listings ?? []);
+      setListingsTotal(total ?? 0);
     } catch (err: unknown) {
       toast({
         title: "Σφάλμα φόρτωσης αγγελιών",
@@ -449,10 +460,11 @@ const AdminDashboard = () => {
         variant: "destructive",
       });
       setPendingListings([]);
+      setListingsTotal(0);
     } finally {
       setListingsLoading(false);
     }
-  }, [session]);
+  }, [session, listingsSearch, listingsCategoryFilter]);
 
   const updateListingStatus = async (id: string, status: "published" | "archived") => {
     if (listingsBusyId) return;
@@ -471,11 +483,11 @@ const AdminDashboard = () => {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || `HTTP ${res.status}`);
       }
-      setPendingListings((prev) => prev.filter((l) => l.id !== id));
       toast({
         title: status === "published" ? "Αγγελία εγκρίθηκε" : "Αγγελία απορρίφθηκε",
         description: status === "published" ? "Η αγγελία είναι πλέον ορατή στην αγορά." : "Η αγγελία αρχειοθετήθηκε.",
       });
+      void loadPendingListings(listingsPage);
     } catch (err: unknown) {
       toast({
         title: "Σφάλμα ενημέρωσης αγγελίας",
@@ -516,8 +528,12 @@ const AdminDashboard = () => {
   }, [isAdmin, loadClaims]);
 
   useEffect(() => {
-    if (isAdmin) loadPendingListings();
-  }, [isAdmin, loadPendingListings]);
+    setListingsPage(0);
+  }, [listingsSearch, listingsCategoryFilter]);
+
+  useEffect(() => {
+    if (isAdmin) loadPendingListings(listingsPage);
+  }, [isAdmin, listingsPage, loadPendingListings]);
 
   useEffect(() => {
     if (isAdmin) loadAuditLog();
@@ -575,7 +591,7 @@ const AdminDashboard = () => {
       setPendingRows((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
       setVerifiedRows((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
     }
-    setSelectedDoctor((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
+    setSelectedDoctor((prev: DoctorProfile | null) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
   };
 
   const toggleVerified = (d: DoctorProfile) =>
@@ -598,10 +614,10 @@ const AdminDashboard = () => {
       const fresh = all.find((c) => c.id === id) ?? null;
       if (!fresh) {
         setClaims((prev) => prev.filter((c) => c.id !== id));
-        setSelectedClaim((prev) => (prev && prev.id === id ? null : prev));
+        setSelectedClaim((prev: ClinicClaim | null) => (prev && prev.id === id ? null : prev));
       } else {
         setClaims((prev) => prev.map((c) => (c.id === id ? fresh : c)));
-        setSelectedClaim((prev) => (prev && prev.id === id ? fresh : prev));
+        setSelectedClaim((prev: ClinicClaim | null) => (prev && prev.id === id ? fresh : prev));
       }
     } catch (err: unknown) {
       if (attempt < 1) {
@@ -664,7 +680,7 @@ const AdminDashboard = () => {
     setClaims((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status, decision_note: trimmedNote } : c)),
     );
-    setSelectedClaim((prev) =>
+    setSelectedClaim((prev: ClinicClaim | null) =>
       prev && prev.id === id ? { ...prev, status, decision_note: trimmedNote } : prev,
     );
     setBusyId(id);
@@ -727,17 +743,6 @@ const AdminDashboard = () => {
     void loadAuditLog();
   };
 
-  const filteredListings = useMemo(() => {
-    let result = pendingListings;
-    if (listingsCategoryFilter) {
-      result = result.filter((l) => l.category === listingsCategoryFilter);
-    }
-    if (listingsSearch) {
-      const q = listingsSearch.toLowerCase();
-      result = result.filter((l) => l.title.toLowerCase().includes(q));
-    }
-    return result;
-  }, [pendingListings, listingsCategoryFilter, listingsSearch]);
 
   if (authLoading || isAdmin === null) {
     return (
@@ -892,6 +897,7 @@ const AdminDashboard = () => {
   };
   const pendingPageCount = Math.max(1, Math.ceil(pendingTotal / PAGE_SIZE));
   const verifiedPageCount = Math.max(1, Math.ceil(verifiedTotal / PAGE_SIZE));
+  const listingsPageCount = Math.max(1, Math.ceil(listingsTotal / PAGE_SIZE));
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -1083,7 +1089,7 @@ const AdminDashboard = () => {
                     Αγγελίες που υποβλήθηκαν από πωλητές και αναμένουν έγκριση πριν εμφανιστούν στην αγορά.
                   </CardDescription>
                 </div>
-                <Button size="sm" variant="outline" onClick={loadPendingListings} disabled={listingsLoading}>
+                <Button size="sm" variant="outline" onClick={() => loadPendingListings(listingsPage)} disabled={listingsLoading}>
                   {listingsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ανανέωση"}
                 </Button>
               </CardHeader>
@@ -1143,14 +1149,17 @@ const AdminDashboard = () => {
                   </Table>
                 ) : pendingListings.length === 0 ? (
                   <p className="p-6 text-sm text-muted-foreground">
-                    Δεν υπάρχουν εκκρεμείς αγγελίες προς αξιολόγηση.
-                  </p>
-                ) : filteredListings.length === 0 ? (
-                  <p className="p-6 text-sm text-muted-foreground">
-                    Δεν βρέθηκαν αγγελίες που να ταιριάζουν με τα φίλτρα.
+                    {listingsSearch || listingsCategoryFilter
+                      ? "Δεν βρέθηκαν αγγελίες που να ταιριάζουν με τα φίλτρα."
+                      : "Δεν υπάρχουν εκκρεμείς αγγελίες προς αξιολόγηση."}
                   </p>
                 ) : (
                   <div className={cn("relative transition-opacity duration-200", listingsLoading && "opacity-60 pointer-events-none")} aria-busy={listingsLoading}>
+                    {listingsLoading && (
+                      <div className="absolute right-2 top-2 z-10">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -1163,7 +1172,7 @@ const AdminDashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredListings.map((listing) => (
+                        {pendingListings.map((listing) => (
                           <TableRow key={listing.id}>
                             <TableCell className="font-medium max-w-[220px] truncate" title={listing.title}>
                               {listing.title}
@@ -1216,6 +1225,35 @@ const AdminDashboard = () => {
                     </Table>
                   </div>
                 )}
+                <div className="flex items-center justify-between gap-3 border-t px-4 pt-3 pb-3 mt-0 text-xs text-muted-foreground min-h-[2.25rem]">
+                  {listingsLoading && pendingListings.length === 0 ? (
+                    <Skeleton className="h-4 w-48" />
+                  ) : listingsTotal > 0 ? (
+                    <>
+                      <span>
+                        Σελίδα {listingsPage + 1} από {listingsPageCount} · {listingsTotal} συνολικά
+                      </span>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={listingsPage === 0 || listingsLoading}
+                          onClick={() => setListingsPage(Math.max(0, listingsPage - 1))}
+                        >
+                          <ChevronLeft className="h-4 w-4" /> Προηγ.
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={listingsPage + 1 >= listingsPageCount || listingsLoading}
+                          onClick={() => setListingsPage(listingsPage + 1)}
+                        >
+                          Επόμ. <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
