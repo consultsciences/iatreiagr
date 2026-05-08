@@ -389,6 +389,53 @@ describe("PUT /api/listings/:id", () => {
 });
 
 // ---------------------------------------------------------------------------
+// DELETE /api/listings/:id
+// ---------------------------------------------------------------------------
+describe("DELETE /api/listings/:id", () => {
+  it("returns 401 when not authenticated and never deletes from DB", async () => {
+    mockGetAuth.mockReturnValue({ userId: null });
+    const app = buildApp();
+    const res = await request(app).delete("/api/listings/listing-123");
+    expect(res.status).toBe(401);
+    expect(mockDb.delete).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the listing does not exist and never deletes from DB", async () => {
+    mockDb.select.mockReturnValue(makeChain([]));
+    const app = buildApp();
+    const res = await request(app).delete("/api/listings/nonexistent-id");
+    expect(res.status).toBe(404);
+    expect(mockDb.delete).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when the listing belongs to another user and never deletes from DB", async () => {
+    mockDb.select.mockReturnValue(makeChain([{ ...MOCK_LISTING, user_id: "other-user-id" }]));
+    const app = buildApp();
+    const res = await request(app).delete("/api/listings/listing-123");
+    expect(res.status).toBe(403);
+    expect(mockDb.delete).not.toHaveBeenCalled();
+  });
+
+  it("returns 204 when the authenticated user deletes their own non-published listing", async () => {
+    mockDb.select.mockReturnValue(makeChain([{ ...MOCK_LISTING, status: "pending" }]));
+    mockDb.delete.mockReturnValue(makeChain([]));
+    const app = buildApp();
+    const res = await request(app).delete("/api/listings/listing-123");
+    expect(res.status).toBe(204);
+    expect(mockDb.delete).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 204 when the authenticated user deletes their own published listing and invalidates the counts cache", async () => {
+    mockDb.select.mockReturnValue(makeChain([{ ...MOCK_LISTING, status: "published" }]));
+    mockDb.delete.mockReturnValue(makeChain([]));
+    const app = buildApp();
+    const res = await request(app).delete("/api/listings/listing-123");
+    expect(res.status).toBe(204);
+    expect(mockDb.delete).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // PATCH /api/admin/listings/:id
 // ---------------------------------------------------------------------------
 describe("PATCH /api/admin/listings/:id", () => {

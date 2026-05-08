@@ -16,6 +16,11 @@ const { mockGetAuth, mockDb } = vi.hoisted(() => {
 vi.mock("@clerk/express", () => ({
   getAuth: mockGetAuth,
   clerkMiddleware: () => (_req: express.Request, _res: express.Response, next: express.NextFunction) => next(),
+  clerkClient: { users: { getUser: vi.fn().mockResolvedValue({ emailAddresses: [], primaryEmailAddressId: null }) } },
+}));
+
+vi.mock("../lib/listingEmail.js", () => ({
+  notifySellerOfListingStatusChange: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@workspace/db", () => ({
@@ -39,6 +44,7 @@ vi.mock("@workspace/db", () => ({
 }));
 
 import listingsRouter, { invalidateCountsCache } from "./listings.js";
+import adminRouter from "./admin.js";
 
 function makeChain<T>(value: T) {
   const p = Promise.resolve(value);
@@ -60,6 +66,7 @@ function buildApp() {
   const app = express();
   app.use(express.json());
   app.use("/api", listingsRouter);
+  app.use("/api", adminRouter);
   return app;
 }
 
@@ -67,6 +74,25 @@ const MOCK_ADMIN_ROW = {
   id: "role-1",
   user_id: "admin-user-id",
   role: "admin",
+};
+
+const MOCK_LISTING_PUBLISHED = {
+  id: "listing-pub",
+  user_id: "seller-user-id",
+  status: "published",
+  title: "Published Listing",
+  category: "spaces",
+  slug: "published-listing-abc",
+  featured: false,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
+const MOCK_LISTING_PENDING = {
+  ...MOCK_LISTING_PUBLISHED,
+  id: "listing-pend",
+  status: "pending",
+  slug: "pending-listing-abc",
 };
 
 async function resetMetrics() {
@@ -189,5 +215,105 @@ describe("POST /api/listings/counts/metrics/reset", () => {
     expect(metricsAfter.body.last_invalidation_at).toBeNull();
     expect(metricsAfter.body.last_invalidation_caller).toBeNull();
     expect(metricsAfter.body.last_stale_row_age_ms).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cache invalidation: seller DELETE /api/listings/:id
+// ---------------------------------------------------------------------------
+describe("cache invalidation: DELETE /api/listings/:id", () => {
+  it("increments the invalidations counter when a published listing is deleted", async () => {
+    const app = buildApp();
+
+    mockGetAuth.mockReturnValue({ userId: "seller-user-id" });
+    mockDb.select.mockReturnValue(makeChain([MOCK_LISTING_PUBLISHED]));
+    mockDb.delete.mockReturnValue(makeChain([]));
+    await request(app).delete("/api/listings/listing-pub");
+
+    mockGetAuth.mockReturnValue({ userId: "admin-user-id" });
+    mockDb.select.mockReturnValue(makeChain([MOCK_ADMIN_ROW]));
+    const metricsRes = await request(app).get("/api/listings/counts/metrics");
+    expect(metricsRes.status).toBe(200);
+    expect(metricsRes.body.invalidations).toBeGreaterThan(0);
+    expect(metricsRes.body.last_invalidation_caller).toBe("DELETE /api/listings/:id");
+  });
+
+  it("does not increment the invalidations counter when a non-published listing is deleted", async () => {
+    const app = buildApp();
+
+    mockGetAuth.mockReturnValue({ userId: "admin-user-id" });
+    mockDb.select.mockReturnValue(makeChain([MOCK_ADMIN_ROW]));
+    const metricsBefore = await request(app).get("/api/listings/counts/metrics");
+    const invalidationsBefore = metricsBefore.body.invalidations as number;
+
+    mockGetAuth.mockReturnValue({ userId: "seller-user-id" });
+    mockDb.select.mockReturnValue(makeChain([MOCK_LISTING_PENDING]));
+    mockDb.delete.mockReturnValue(makeChain([]));
+    await request(app).delete("/api/listings/listing-pend");
+
+    mockGetAuth.mockReturnValue({ userId: "admin-user-id" });
+    mockDb.select.mockReturnValue(makeChain([MOCK_ADMIN_ROW]));
+    const metricsAfter = await request(app).get("/api/listings/counts/metrics");
+    expect(metricsAfter.status).toBe(200);
+    expect(metricsAfter.body.invalidations).toBe(invalidationsBefore);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cache invalidation: admin PATCH /api/admin/listings/:id
+// ---------------------------------------------------------------------------
+describe("cache invalidation: PATCH /api/admin/listings/:id", () => {
+  it("increments the invalidations counter when a pending listing is published", async () => {
+    const app = buildApp();
+
+    mockGetAuth.mockReturnValue({ userId: "admin-user-id" });
+    mockDb.select
+      .mockReturnValueOnce(makeChain([MOCK_ADMIN_ROW]))
+      .mockReturnValueOnce(makeChain([{ status: "pending" }]));
+    mockDb.update.mockReturnValue(makeChain([{ ...MOCK_LISTING_PUBLISHED, user_id: null }]));
+    await request(app).patch("/api/admin/listings/listing-pub").send({ status: "published" });
+
+    mockDb.select.mockReturnValue(makeChain([MOCK_ADMIN_ROW]));
+    const metricsRes = await request(app).get("/api/listings/counts/metrics");
+    expect(metricsRes.status).toBe(200);
+    expect(metricsRes.body.invalidations).toBeGreaterThan(0);
+    expect(metricsRes.body.last_invalidation_caller).toBe("PATCH /api/admin/listings/:id");
+  });
+
+  it("increments the invalidations counter when a published listing is archived", async () => {
+    const app = buildApp();
+
+    mockGetAuth.mockReturnValue({ userId: "admin-user-id" });
+    mockDb.select
+      .mockReturnValueOnce(makeChain([MOCK_ADMIN_ROW]))
+      .mockReturnValueOnce(makeChain([{ status: "published" }]));
+    mockDb.update.mockReturnValue(makeChain([{ ...MOCK_LISTING_PUBLISHED, status: "archived", user_id: null }]));
+    await request(app).patch("/api/admin/listings/listing-pub").send({ status: "archived" });
+
+    mockDb.select.mockReturnValue(makeChain([MOCK_ADMIN_ROW]));
+    const metricsRes = await request(app).get("/api/listings/counts/metrics");
+    expect(metricsRes.status).toBe(200);
+    expect(metricsRes.body.invalidations).toBeGreaterThan(0);
+    expect(metricsRes.body.last_invalidation_caller).toBe("PATCH /api/admin/listings/:id");
+  });
+
+  it("does not increment the invalidations counter when transitioning between two non-published statuses", async () => {
+    const app = buildApp();
+
+    mockGetAuth.mockReturnValue({ userId: "admin-user-id" });
+    mockDb.select.mockReturnValue(makeChain([MOCK_ADMIN_ROW]));
+    const metricsBefore = await request(app).get("/api/listings/counts/metrics");
+    const invalidationsBefore = metricsBefore.body.invalidations as number;
+
+    mockDb.select
+      .mockReturnValueOnce(makeChain([MOCK_ADMIN_ROW]))
+      .mockReturnValueOnce(makeChain([{ status: "pending" }]));
+    mockDb.update.mockReturnValue(makeChain([{ ...MOCK_LISTING_PENDING, status: "archived", user_id: null }]));
+    await request(app).patch("/api/admin/listings/listing-pend").send({ status: "archived" });
+
+    mockDb.select.mockReturnValue(makeChain([MOCK_ADMIN_ROW]));
+    const metricsAfter = await request(app).get("/api/listings/counts/metrics");
+    expect(metricsAfter.status).toBe(200);
+    expect(metricsAfter.body.invalidations).toBe(invalidationsBefore);
   });
 });
