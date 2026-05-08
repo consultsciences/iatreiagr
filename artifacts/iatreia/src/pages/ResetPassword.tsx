@@ -44,7 +44,7 @@ const ResetPassword = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center px-4">
-          <Logo size="md" />
+          <Logo size="lg" />
         </div>
       </header>
       <main className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
