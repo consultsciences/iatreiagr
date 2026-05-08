@@ -16,6 +16,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, ExternalLink, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { fetchMyListings, updateListing, deleteListing, CATEGORY_LABEL, type DbListing, type CreateListingInput } from "@/lib/listings";
+import { fetchSubscriptionStatus, type SubscriptionStatus } from "@/lib/subscriptions";
+import { PlanStatus } from "@/components/PlanStatus";
 
 type Category = DbListing["category"];
 const CATEGORIES: Category[] = ["spaces", "equipment", "jobs", "supplies", "services"];
@@ -59,6 +61,7 @@ const MyListings = () => {
   const navigate = useNavigate();
   const [listings, setListings] = useState<DbListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [planStatus, setPlanStatus] = useState<SubscriptionStatus | null>(null);
   const [editTarget, setEditTarget] = useState<DbListing | null>(null);
   const [editForm, setEditForm] = useState<CreateListingInput | null>(null);
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
@@ -79,8 +82,12 @@ const MyListings = () => {
     try {
       const token = await session?.getToken();
       if (!token) throw new Error("Δεν βρέθηκε session");
-      const rows = await fetchMyListings(token);
+      const [rows, status] = await Promise.all([
+        fetchMyListings(token),
+        fetchSubscriptionStatus(token),
+      ]);
       setListings(rows);
+      setPlanStatus(status);
     } catch (err: unknown) {
       toast({ title: "Σφάλμα φόρτωσης", description: err instanceof Error ? err.message : "Άγνωστο σφάλμα", variant: "destructive" });
     } finally {
@@ -156,15 +163,17 @@ const MyListings = () => {
 
       <main className="flex-1 py-10">
         <div className="container mx-auto max-w-3xl px-4">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Οι αγγελίες μου</h1>
               <p className="mt-1 text-muted-foreground">Διαχειριστείτε τις αγγελίες σας</p>
             </div>
-            <Button asChild>
+            <Button asChild disabled={planStatus !== null && planStatus.plan !== "enterprise" && planStatus.activeCount >= planStatus.limit}>
               <Link to="/post"><Plus className="mr-2 h-4 w-4" />Νέα αγγελία</Link>
             </Button>
           </div>
+
+          {planStatus && <PlanStatus status={planStatus} />}
 
           {listings.length === 0 ? (
             <Card>

@@ -11,8 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Lock, ArrowRight } from "lucide-react";
 import { createListing, CATEGORY_LABEL, type DbListing } from "@/lib/listings";
+import { fetchSubscriptionStatus, type SubscriptionStatus } from "@/lib/subscriptions";
+import { PlanStatus } from "@/components/PlanStatus";
 
 type Category = DbListing["category"];
 
@@ -65,6 +67,8 @@ const Post = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [planStatus, setPlanStatus] = useState<SubscriptionStatus | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
 
   useEffect(() => {
     document.title = "Καταχώριση Αγγελίας | iatreia.gr";
@@ -75,6 +79,18 @@ const Post = () => {
       navigate(`/auth?redirect=/post&tab=signin`, { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    setPlanLoading(true);
+    session?.getToken().then((token) => {
+      if (!token) { setPlanLoading(false); return; }
+      return fetchSubscriptionStatus(token);
+    }).then((status) => {
+      if (status) setPlanStatus(status);
+    }).catch(() => {
+    }).finally(() => setPlanLoading(false));
+  }, [user, session]);
 
   const set = (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -112,9 +128,13 @@ const Post = () => {
 
       setDone(true);
     } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Άγνωστο σφάλμα";
+      if (msg.includes("listing_limit_reached") || msg.includes("409")) {
+        setPlanStatus((prev) => prev ? { ...prev, activeCount: prev.limit } : prev);
+      }
       toast({
         title: "Σφάλμα υποβολής",
-        description: err instanceof Error ? err.message : "Άγνωστο σφάλμα",
+        description: msg,
         variant: "destructive",
       });
     } finally {
@@ -122,13 +142,17 @@ const Post = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || planLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
+
+  const atLimit = planStatus !== null
+    && planStatus.plan !== "enterprise"
+    && planStatus.activeCount >= planStatus.limit;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -154,14 +178,47 @@ const Post = () => {
                 </div>
               </CardContent>
             </Card>
+          ) : atLimit ? (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold">Καταχώριση Αγγελίας</h1>
+              </div>
+              {planStatus && <PlanStatus status={planStatus} />}
+              <Card className="border-destructive/30 bg-destructive/5">
+                <CardContent className="flex flex-col items-center gap-5 py-14 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+                    <Lock className="h-8 w-8 text-destructive" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold">Έχετε φτάσει το όριο αγγελιών</h2>
+                    <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                      Το δωρεάν πακέτο επιτρέπει έως {planStatus.limit} ενεργή αγγελία.
+                      Αναβαθμίστε για να δημοσιεύσετε περισσότερες.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button asChild>
+                      <Link to="/pricing">
+                        Δείτε τα πακέτα <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link to="/my-listings">Οι αγγελίες μου</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             <form onSubmit={handleSubmit} noValidate>
-              <div className="mb-8">
+              <div className="mb-6">
                 <h1 className="text-3xl font-bold">Καταχώριση Αγγελίας</h1>
                 <p className="mt-1 text-muted-foreground">
                   Συμπληρώστε τα στοιχεία της αγγελίας σας. Μετά την υποβολή θα ελεγχθεί από την ομάδα μας.
                 </p>
               </div>
+
+              {planStatus && <PlanStatus status={planStatus} />}
 
               <div className="space-y-6">
                 <Card>

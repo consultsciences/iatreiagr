@@ -2,9 +2,10 @@ import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { listingsTable, listingCountsCacheTable } from "@workspace/db";
-import { eq, and, or, desc, count, ilike } from "drizzle-orm";
+import { eq, and, or, desc, count, ilike, ne } from "drizzle-orm";
 import { CreateListingBody, UpdateListingBody } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { getUserPlan, countActiveListings, PLAN_LIMITS } from "./subscriptions";
 
 const router = Router();
 
@@ -248,6 +249,22 @@ router.get("/listings/:slug", async (req, res) => {
 router.post("/listings", async (req, res) => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const plan = await getUserPlan(userId);
+  const limit = PLAN_LIMITS[plan] ?? 1;
+  if (limit < 999999) {
+    const activeCount = await countActiveListings(userId);
+    if (activeCount >= limit) {
+      res.status(409).json({
+        error: "listing_limit_reached",
+        plan,
+        limit,
+        activeCount,
+        message: `Το πακέτο σας (${plan}) επιτρέπει έως ${limit} ενεργές αγγελίες. Αναβαθμίστε για περισσότερες.`,
+      });
+      return;
+    }
+  }
 
   const parsed = CreateListingBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
