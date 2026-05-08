@@ -236,11 +236,24 @@ const AdminDashboard = () => {
 
   type PendingListing = {
     id: string;
+    slug: string;
     title: string;
     category: string;
+    description: string | null;
     city: string | null;
+    region: string | null;
+    price: string | null;
+    price_unit: string | null;
+    price_label: string | null;
+    badge: string | null;
+    meta: string | null;
+    image_url: string | null;
+    contact_name: string | null;
     contact_email: string | null;
+    contact_phone: string | null;
+    featured: boolean;
     status: string;
+    user_id: string | null;
     created_at: Date | string;
   };
   const [pendingListings, setPendingListings] = useState<PendingListing[]>([]);
@@ -251,6 +264,7 @@ const AdminDashboard = () => {
   const [listingsSearchInput, setListingsSearchInput] = useState("");
   const [listingsSearch, setListingsSearch] = useState("");
   const [listingsCategoryFilter, setListingsCategoryFilter] = useState("");
+  const [selectedListing, setSelectedListing] = useState<PendingListing | null>(null);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorProfile | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<ClinicClaim | null>(null);
   const [lowCompletenessOnly, setLowCompletenessOnly] = useState(false);
@@ -466,7 +480,7 @@ const AdminDashboard = () => {
     }
   }, [session, listingsSearch, listingsCategoryFilter]);
 
-  const updateListingStatus = async (id: string, status: "published" | "archived") => {
+  const updateListingStatus = async (id: string, status: "published" | "archived", onSuccess?: () => void) => {
     if (listingsBusyId) return;
     setListingsBusyId(id);
     try {
@@ -487,6 +501,7 @@ const AdminDashboard = () => {
         title: status === "published" ? "Αγγελία εγκρίθηκε" : "Αγγελία απορρίφθηκε",
         description: status === "published" ? "Η αγγελία είναι πλέον ορατή στην αγορά." : "Η αγγελία αρχειοθετήθηκε.",
       });
+      onSuccess?.();
       void loadPendingListings(listingsPage);
     } catch (err: unknown) {
       toast({
@@ -1195,6 +1210,13 @@ const AdminDashboard = () => {
                               <div className="flex justify-end gap-2">
                                 <Button
                                   size="sm"
+                                  variant="ghost"
+                                  onClick={() => setSelectedListing(listing)}
+                                >
+                                  <FileSearch className="h-4 w-4 mr-1" /> Λεπτομέρειες
+                                </Button>
+                                <Button
+                                  size="sm"
                                   variant="default"
                                   disabled={listingsBusyId === listing.id}
                                   onClick={() => updateListingStatus(listing.id, "published")}
@@ -1559,6 +1581,14 @@ const AdminDashboard = () => {
         onOpenChange={(open) => !open && setSelectedClaim(null)}
         onDecide={updateClaim}
         allClaims={claims}
+      />
+      <ListingDetailsSheet
+        listing={selectedListing}
+        busyId={listingsBusyId}
+        onOpenChange={(open) => !open && setSelectedListing(null)}
+        onDecide={(id, status) =>
+          updateListingStatus(id, status, () => setSelectedListing(null))
+        }
       />
     </div>
   );
@@ -2344,5 +2374,188 @@ const ClaimDetailsSheet = ({
     </Sheet>
   );
 };
+
+type PendingListingForSheet = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  description: string | null;
+  city: string | null;
+  region: string | null;
+  price: string | null;
+  price_unit: string | null;
+  price_label: string | null;
+  badge: string | null;
+  meta: string | null;
+  image_url: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  featured: boolean;
+  status: string;
+  user_id: string | null;
+  created_at: Date | string;
+};
+
+const LISTING_CATEGORY_LABELS: Record<string, string> = {
+  spaces: "Χώροι",
+  equipment: "Εξοπλισμός",
+  jobs: "Εργασία",
+  supplies: "Αναλώσιμα",
+  services: "Υπηρεσίες",
+};
+
+const ListingDetailsSheet = ({
+  listing,
+  busyId,
+  onOpenChange,
+  onDecide,
+}: {
+  listing: PendingListingForSheet | null;
+  busyId: string | null;
+  onOpenChange: (open: boolean) => void;
+  onDecide: (id: string, status: "published" | "archived") => void;
+}) => (
+  <Sheet open={!!listing} onOpenChange={onOpenChange}>
+    <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      {listing && (
+        <>
+          <SheetHeader className="text-left">
+            <SheetTitle className="line-clamp-2">{listing.title}</SheetTitle>
+            <SheetDescription>Αγγελία προς αξιολόγηση</SheetDescription>
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              <Badge variant="secondary" className="capitalize">
+                {LISTING_CATEGORY_LABELS[listing.category] ?? listing.category}
+              </Badge>
+              {listing.featured && (
+                <Badge variant="default">Featured</Badge>
+              )}
+              {listing.badge && (
+                <Badge variant="outline">{listing.badge}</Badge>
+              )}
+            </div>
+          </SheetHeader>
+
+          <Separator className="my-4" />
+
+          {listing.image_url && (
+            <>
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Εικόνα</p>
+                <img
+                  src={listing.image_url}
+                  alt={listing.title}
+                  className="w-full max-h-48 rounded-md object-cover border"
+                />
+              </div>
+              <Separator className="my-4" />
+            </>
+          )}
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Πόλη" value={listing.city} />
+              <Field label="Περιφέρεια" value={listing.region} />
+              <Field
+                label="Τιμή"
+                value={
+                  listing.price
+                    ? `${listing.price}${listing.price_unit ? ` / ${listing.price_unit}` : ""}${listing.price_label ? ` (${listing.price_label})` : ""}`
+                    : null
+                }
+              />
+              <Field
+                label="Ημερομηνία υποβολής"
+                value={new Date(listing.created_at).toLocaleString("el-GR")}
+              />
+            </div>
+
+            {listing.description && (
+              <Field
+                label="Περιγραφή"
+                value={<p className="whitespace-pre-wrap">{listing.description}</p>}
+              />
+            )}
+
+            {listing.meta && (
+              <Field label="Πρόσθετα στοιχεία" value={<p className="whitespace-pre-wrap">{listing.meta}</p>} />
+            )}
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Στοιχεία επικοινωνίας</p>
+            <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+              {listing.contact_name && (
+                <div className="flex items-center gap-1.5 text-sm">
+                  <UserRound className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{listing.contact_name}</span>
+                </div>
+              )}
+              {listing.contact_email && (
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                  <a href={`mailto:${listing.contact_email}`} className="hover:underline text-foreground">
+                    {listing.contact_email}
+                  </a>
+                </div>
+              )}
+              {listing.contact_phone && (
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                  <a href={`tel:${listing.contact_phone}`} className="hover:underline text-foreground">
+                    {listing.contact_phone}
+                  </a>
+                </div>
+              )}
+              {!listing.contact_name && !listing.contact_email && !listing.contact_phone && (
+                <p className="text-xs text-muted-foreground">Δεν παρασχέθηκαν στοιχεία επικοινωνίας.</p>
+              )}
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="space-y-1">
+            <Field label="Slug" value={<code className="text-xs">{listing.slug}</code>} />
+            {listing.user_id && (
+              <Field label="User ID" value={<code className="text-xs">{listing.user_id}</code>} />
+            )}
+          </div>
+
+          <SheetFooter className="mt-6 flex-col gap-2 sm:flex-row">
+            <Button
+              className="flex-1"
+              disabled={busyId === listing.id}
+              onClick={() => onDecide(listing.id, "published")}
+            >
+              {busyId === listing.id ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+              )}
+              Έγκριση
+            </Button>
+            <Button
+              className="flex-1"
+              variant="outline"
+              disabled={busyId === listing.id}
+              onClick={() => onDecide(listing.id, "archived")}
+            >
+              {busyId === listing.id ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4 mr-1" />
+              )}
+              Απόρριψη
+            </Button>
+          </SheetFooter>
+        </>
+      )}
+    </SheetContent>
+  </Sheet>
+);
 
 export default AdminDashboard;
