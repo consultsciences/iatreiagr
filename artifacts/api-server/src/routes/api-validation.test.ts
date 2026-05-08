@@ -392,13 +392,13 @@ describe("PUT /api/listings/:id", () => {
 // PATCH /api/admin/listings/:id
 // ---------------------------------------------------------------------------
 describe("PATCH /api/admin/listings/:id", () => {
-  it("returns 403 when not authenticated and never writes to DB", async () => {
+  it("returns 401 when not authenticated and never writes to DB", async () => {
     mockGetAuth.mockReturnValue({ userId: null });
     const app = buildApp();
     const res = await request(app)
       .patch("/api/admin/listings/listing-123")
       .send({ status: "published" });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     expect(mockDb.update).not.toHaveBeenCalled();
   });
 

@@ -88,11 +88,11 @@ beforeEach(async () => {
 // GET /api/listings/counts/metrics
 // ---------------------------------------------------------------------------
 describe("GET /api/listings/counts/metrics", () => {
-  it("returns 403 when not authenticated", async () => {
+  it("returns 401 when not authenticated", async () => {
     mockGetAuth.mockReturnValue({ userId: null });
     const app = buildApp();
     const res = await request(app).get("/api/listings/counts/metrics");
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     expect(res.body).toHaveProperty("error");
   });
 

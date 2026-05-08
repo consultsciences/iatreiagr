@@ -6,31 +6,24 @@ import { eq, and, desc, ilike, or, sql, gte, lte, like, SQL } from "drizzle-orm"
 import { AdminUpdateDoctorBody, AdminUpdateClaimBody, AdminCreateAuditLogBody, AdminUpdateListingStatusBody } from "@workspace/api-zod";
 import type { DoctorProfile, ClinicClaim, ClinicClaimAuditLog } from "@workspace/db";
 import { invalidateCountsCache } from "./listings";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router = Router();
-
-async function isAdmin(userId: string): Promise<boolean> {
-  const [row] = await db
-    .select()
-    .from(userRolesTable)
-    .where(and(eq(userRolesTable.user_id, userId), eq(userRolesTable.role, "admin")))
-    .limit(1);
-  return !!row;
-}
 
 // GET /api/admin/roles/check
 router.get("/admin/roles/check", async (req, res) => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-  const admin = await isAdmin(userId);
-  res.json({ is_admin: admin });
+  const [adminRow] = await db
+    .select()
+    .from(userRolesTable)
+    .where(and(eq(userRolesTable.user_id, userId), eq(userRolesTable.role, "admin")))
+    .limit(1);
+  res.json({ is_admin: !!adminRow });
 });
 
 // GET /api/admin/doctors
-router.get("/admin/doctors", async (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/admin/doctors", requireAdmin, async (req, res) => {
   const { verified, search, limit = "20", offset = "0" } = req.query as Record<string, string>;
   const lim = Math.min(parseInt(limit) || 20, 200);
   const off = parseInt(offset) || 0;
@@ -59,10 +52,7 @@ router.get("/admin/doctors", async (req, res) => {
 });
 
 // PATCH /api/admin/doctors/:id
-router.patch("/admin/doctors/:id", async (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.patch("/admin/doctors/:id", requireAdmin, async (req, res) => {
   const parsed = AdminUpdateDoctorBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
@@ -82,10 +72,7 @@ router.patch("/admin/doctors/:id", async (req, res) => {
 });
 
 // GET /api/admin/claims
-router.get("/admin/claims", async (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/admin/claims", requireAdmin, async (req, res) => {
   const { status = "pending" } = req.query as Record<string, string>;
   const conditions: SQL[] = [];
   if (status !== "all") conditions.push(eq(clinicClaimsTable.status, status));
@@ -100,10 +87,7 @@ router.get("/admin/claims", async (req, res) => {
 });
 
 // PATCH /api/admin/claims/:id
-router.patch("/admin/claims/:id", async (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.patch("/admin/claims/:id", requireAdmin, async (req, res) => {
   const parsed = AdminUpdateClaimBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
@@ -118,10 +102,7 @@ router.patch("/admin/claims/:id", async (req, res) => {
 });
 
 // GET /api/admin/audit-log
-router.get("/admin/audit-log", async (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/admin/audit-log", requireAdmin, async (req, res) => {
   const q = req.query as Record<string, string>;
   const lim = Math.min(parseInt(q.limit || "500"), 5000);
 
@@ -143,26 +124,22 @@ router.get("/admin/audit-log", async (req, res) => {
 });
 
 // POST /api/admin/audit-log
-router.post("/admin/audit-log", async (req, res) => {
+router.post("/admin/audit-log", requireAdmin, async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
 
   const parsed = AdminCreateAuditLogBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
   await db.insert(clinicClaimAuditLogTable).values({
     ...parsed.data,
-    admin_id: userId,
+    admin_id: userId!,
   });
 
   res.status(201).end();
 });
 
 // PATCH /api/admin/listings/:id — update listing status; invalidates counts cache when publishing
-router.patch("/admin/listings/:id", async (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.patch("/admin/listings/:id", requireAdmin, async (req, res) => {
   const parsed = AdminUpdateListingStatusBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 

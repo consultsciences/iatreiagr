@@ -424,13 +424,13 @@ describe("POST /api/bookings", () => {
 // PATCH /api/admin/doctors/:id — admin update of a doctor profile
 // ---------------------------------------------------------------------------
 describe("PATCH /api/admin/doctors/:id", () => {
-  it("returns 403 when not authenticated and never writes to DB", async () => {
+  it("returns 401 when not authenticated and never writes to DB", async () => {
     mockGetAuth.mockReturnValue({ userId: null });
     const app = buildApp();
     const res = await request(app)
       .patch("/api/admin/doctors/doctor-profile-1")
       .send({ verified: true });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     expect(mockDb.update).not.toHaveBeenCalled();
   });
 
@@ -496,13 +496,13 @@ describe("PATCH /api/admin/doctors/:id", () => {
 // PATCH /api/admin/claims/:id — admin approve/reject a clinic claim
 // ---------------------------------------------------------------------------
 describe("PATCH /api/admin/claims/:id", () => {
-  it("returns 403 when not authenticated and never writes to DB", async () => {
+  it("returns 401 when not authenticated and never writes to DB", async () => {
     mockGetAuth.mockReturnValue({ userId: null });
     const app = buildApp();
     const res = await request(app)
       .patch("/api/admin/claims/claim-1")
       .send({ status: "approved" });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     expect(mockDb.update).not.toHaveBeenCalled();
   });
 
@@ -579,13 +579,13 @@ describe("PATCH /api/admin/claims/:id", () => {
 // POST /api/admin/audit-log — admin insert an audit log entry
 // ---------------------------------------------------------------------------
 describe("POST /api/admin/audit-log", () => {
-  it("returns 403 when not authenticated and never writes to DB", async () => {
+  it("returns 401 when not authenticated and never writes to DB", async () => {
     mockGetAuth.mockReturnValue({ userId: null });
     const app = buildApp();
     const res = await request(app)
       .post("/api/admin/audit-log")
       .send({ claim_id: "claim-1", decision: "approved" });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     expect(mockDb.insert).not.toHaveBeenCalled();
   });
 

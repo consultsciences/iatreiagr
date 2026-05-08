@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
-import { listingsTable, listingCountsCacheTable, userRolesTable } from "@workspace/db";
+import { listingsTable, listingCountsCacheTable } from "@workspace/db";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import { CreateListingBody, UpdateListingBody } from "@workspace/api-zod";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router = Router();
 
@@ -114,30 +115,12 @@ async function generateUniqueSlug(base: string, attempts = 5): Promise<string> {
   return `${slug}-${Date.now()}`;
 }
 
-router.get("/listings/counts/metrics", async (req, res) => {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
-
-  const [adminRow] = await db
-    .select()
-    .from(userRolesTable)
-    .where(and(eq(userRolesTable.user_id, userId), eq(userRolesTable.role, "admin")))
-    .limit(1);
-  if (!adminRow) { res.status(403).json({ error: "Forbidden" }); return; }
-
+router.get("/listings/counts/metrics", requireAdmin, async (req, res) => {
   res.json({ ...cacheMetrics });
 });
 
-router.post("/listings/counts/metrics/reset", async (req, res) => {
+router.post("/listings/counts/metrics/reset", requireAdmin, async (req, res) => {
   const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-  const [adminRow] = await db
-    .select()
-    .from(userRolesTable)
-    .where(and(eq(userRolesTable.user_id, userId), eq(userRolesTable.role, "admin")))
-    .limit(1);
-  if (!adminRow) { res.status(403).json({ error: "Forbidden" }); return; }
 
   cacheMetrics.hits_process = 0;
   cacheMetrics.hits_db = 0;
