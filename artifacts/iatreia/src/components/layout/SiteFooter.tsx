@@ -26,7 +26,7 @@ const cols = [
     links: [
       { to: "/about", label: "Σχετικά" },
       { to: "/contact", label: "Επικοινωνία" },
-      { to: "/blog", label: "Blog & Οδηγοί" },
+      { to: "/articles", label: "Blog & Οδηγοί" },
       { to: "/en", label: "English" },
     ],
   },

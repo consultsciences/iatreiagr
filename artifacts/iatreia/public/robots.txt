@@ -12,3 +12,14 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /my-listings
+Disallow: /post
+Disallow: /bookings
+Disallow: /doctors/dashboard
+Disallow: /doctors/onboarding
+Disallow: /auth
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://iatreia.gr/sitemap.xml

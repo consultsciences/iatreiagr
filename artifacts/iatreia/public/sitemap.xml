@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://iatreia.gr/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://iatreia.gr/spaces</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://iatreia.gr/equipment</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://iatreia.gr/jobs</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://iatreia.gr/supplies</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://iatreia.gr/services</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://iatreia.gr/search</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://iatreia.gr/clinic-launch</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iatreia.gr/pricing</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://iatreia.gr/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://iatreia.gr/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://iatreia.gr/articles</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iatreia.gr/clinics</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://iatreia.gr/medical-tourism</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://iatreia.gr/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://iatreia.gr/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://iatreia.gr/listings-policy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>
