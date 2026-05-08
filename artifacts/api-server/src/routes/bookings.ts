@@ -70,6 +70,7 @@ router.post("/bookings/:id/cancel", async (req, res) => {
 
   if (!booking) { res.status(404).json({ error: "Not found" }); return; }
   if (booking.user_id !== userId) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (booking.status === "cancelled") { res.status(409).json({ error: "Booking is already cancelled" }); return; }
 
   const [updated] = await db
     .update(bookingsTable)

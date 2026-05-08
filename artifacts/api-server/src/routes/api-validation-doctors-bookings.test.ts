@@ -453,6 +453,15 @@ describe("POST /api/bookings/:id/cancel", () => {
     expect(mockDb.update).not.toHaveBeenCalled();
   });
 
+  it("returns 409 when the booking is already cancelled and never writes to DB", async () => {
+    mockDb.select.mockReturnValue(makeChain([CANCELLED_BOOKING]));
+    const app = buildApp();
+    const res = await request(app).post("/api/bookings/booking-1/cancel");
+    expect(res.status).toBe(409);
+    expect(res.body).toHaveProperty("error");
+    expect(mockDb.update).not.toHaveBeenCalled();
+  });
+
   it("returns 200 with status cancelled for a valid owned booking and writes to DB exactly once", async () => {
     mockDb.select.mockReturnValue(makeChain([OWNED_BOOKING]));
     mockDb.update.mockReturnValue(makeChain([CANCELLED_BOOKING]));
