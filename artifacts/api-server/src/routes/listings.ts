@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
-import { listingsTable, listingCountsCacheTable } from "@workspace/db";
+import { listingsTable, listingCountsCacheTable, userRolesTable } from "@workspace/db";
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import { CreateListingBody, UpdateListingBody } from "@workspace/api-zod";
 
@@ -116,6 +116,32 @@ async function generateUniqueSlug(base: string, attempts = 5): Promise<string> {
 
 router.get("/listings/counts/metrics", (_req, res) => {
   res.json({ ...cacheMetrics });
+});
+
+router.post("/listings/counts/metrics/reset", async (req, res) => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const [adminRow] = await db
+    .select()
+    .from(userRolesTable)
+    .where(and(eq(userRolesTable.user_id, userId), eq(userRolesTable.role, "admin")))
+    .limit(1);
+  if (!adminRow) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  cacheMetrics.hits_process = 0;
+  cacheMetrics.hits_db = 0;
+  cacheMetrics.misses = 0;
+  cacheMetrics.stale_db_rows = 0;
+  cacheMetrics.invalidations = 0;
+  cacheMetrics.last_invalidation_at = null;
+  cacheMetrics.last_invalidation_caller = null;
+  cacheMetrics.last_stale_row_age_ms = null;
+
+  const ts = new Date().toISOString();
+  console.log(`[counts-cache] METRICS RESET at=${ts} by=${userId}`);
+
+  res.json({ reset: true, at: ts, by: userId });
 });
 
 router.get("/listings/counts", async (req, res) => {
