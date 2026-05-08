@@ -29,8 +29,9 @@ const ForgotPassword = () => {
         identifier: email.trim(),
       });
       setSent(true);
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Σφάλμα αποστολής.");
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ longMessage?: string }>; message?: string };
+      setError(e?.errors?.[0]?.longMessage ?? e?.message ?? "Σφάλμα αποστολής.");
     } finally {
       setLoading(false);
     }

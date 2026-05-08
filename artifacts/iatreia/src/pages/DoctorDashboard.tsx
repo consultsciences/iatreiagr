@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2, LogOut, Stethoscope, UserCog } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import ProfileTab, { type Profile } from "@/components/doctor/ProfileTab";
-import AvailabilityTab from "@/components/doctor/AvailabilityTab";
-import BookingsTab from "@/components/doctor/BookingsTab";
-import ClinicTab from "@/components/doctor/ClinicTab";
+import AvailabilityTab, { type AvailabilitySlotRecord } from "@/components/doctor/AvailabilityTab";
+import BookingsTab, { type DoctorBooking } from "@/components/doctor/BookingsTab";
+import ClinicTab, { type ClaimRecord } from "@/components/doctor/ClinicTab";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -25,9 +25,9 @@ const DoctorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Profile>(empty);
-  const [availability, setAvailability] = useState<any[]>([]);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [claims, setClaims] = useState<any[]>([]);
+  const [availability, setAvailability] = useState<AvailabilitySlotRecord[]>([]);
+  const [bookings, setBookings] = useState<DoctorBooking[]>([]);
+  const [claims, setClaims] = useState<ClaimRecord[]>([]);
   const [newSlot, setNewSlot] = useState({ day_of_week: 1, start_time: "09:00", end_time: "17:00" });
   const [clinicQuery, setClinicQuery] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
@@ -38,7 +38,7 @@ const DoctorDashboard = () => {
     if (!authLoading && !user) navigate("/doctors/auth", { replace: true });
   }, [user, authLoading, navigate]);
 
-  const getToken = async () => session?.getToken();
+  const getToken = useCallback(async () => session?.getToken(), [session]);
 
   useEffect(() => {
     if (!user) return;
@@ -62,13 +62,13 @@ const DoctorDashboard = () => {
         if (availRes.ok) setAvailability(await availRes.json());
         if (bksRes.ok) setBookings(await bksRes.json());
         if (clsRes.ok) setClaims(await clsRes.json());
-      } catch (err: any) {
-        toast({ title: "Σφάλμα φόρτωσης", description: err?.message, variant: "destructive" });
+      } catch (err: unknown) {
+        toast({ title: "Σφάλμα φόρτωσης", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
       } finally {
         setLoading(false);
       }
     })();
-  }, [user]);
+  }, [user, getToken]);
 
   const saveProfile = async () => {
     if (!user) return;
@@ -88,8 +88,8 @@ const DoctorDashboard = () => {
         throw new Error(err?.error || `HTTP ${res.status}`);
       }
       toast({ title: "Αποθηκεύτηκε", description: "Το προφίλ ενημερώθηκε." });
-    } catch (err: any) {
-      toast({ title: "Σφάλμα", description: err?.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -110,8 +110,8 @@ const DoctorDashboard = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setAvailability((a) => [...a, data]);
-    } catch (err: any) {
-      toast({ title: "Σφάλμα", description: err?.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     }
   };
 
@@ -124,8 +124,8 @@ const DoctorDashboard = () => {
       });
       if (!res.ok && res.status !== 204) throw new Error(`HTTP ${res.status}`);
       setAvailability((a) => a.filter((s) => s.id !== id));
-    } catch (err: any) {
-      toast({ title: "Σφάλμα", description: err?.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     }
   };
 
@@ -145,8 +145,8 @@ const DoctorDashboard = () => {
       const data = await res.json();
       setClaims((c) => [...c, data]);
       toast({ title: "Υποβλήθηκε αίτημα", description: "Θα ειδοποιηθείτε όταν εγκριθεί." });
-    } catch (err: any) {
-      toast({ title: "Σφάλμα", description: err?.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     }
   };
 
@@ -159,8 +159,8 @@ const DoctorDashboard = () => {
       });
       if (!res.ok && res.status !== 204) throw new Error(`HTTP ${res.status}`);
       setClaims((c) => c.filter((x) => x.id !== id));
-    } catch (err: any) {
-      toast({ title: "Σφάλμα", description: err?.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     }
   };
 

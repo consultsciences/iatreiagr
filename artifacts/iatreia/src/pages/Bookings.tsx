@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO, isPast, differenceInHours } from "date-fns";
 import { el } from "date-fns/locale";
@@ -60,7 +60,7 @@ const BookingsPage = () => {
     if (!authLoading && !user) navigate("/auth?redirect=/bookings", { replace: true });
   }, [user, authLoading, navigate]);
 
-  const loadBookings = async () => {
+  const loadBookings = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -71,16 +71,16 @@ const BookingsPage = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setBookings(data as Booking[]);
-    } catch (err: any) {
-      toast({ title: "Σφάλμα", description: err?.message ?? "Αδυναμία φόρτωσης", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : "Αδυναμία φόρτωσης", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, session]);
 
   useEffect(() => {
     if (user) loadBookings();
-  }, [user]);
+  }, [user, loadBookings]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -107,8 +107,8 @@ const BookingsPage = () => {
           b.id === cancelTarget.id ? { ...b, status: "cancelled", cancelled_at: new Date().toISOString() } : b,
         ),
       );
-    } catch (err: any) {
-      toast({ title: "Αδυναμία ακύρωσης", description: err?.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Αδυναμία ακύρωσης", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     } finally {
       setCancelling(false);
     }

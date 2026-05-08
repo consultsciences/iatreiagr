@@ -9,8 +9,15 @@ const DAYS = ["Κυριακή", "Δευτέρα", "Τρίτη", "Τετάρτη"
 
 interface Slot { day_of_week: number; start_time: string; end_time: string; }
 
+export interface AvailabilitySlotRecord {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+}
+
 interface Props {
-  availability: any[];
+  availability: AvailabilitySlotRecord[];
   newSlot: Slot;
   setNewSlot: (s: Slot) => void;
   onAdd: () => void;

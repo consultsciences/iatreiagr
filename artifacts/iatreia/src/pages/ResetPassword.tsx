@@ -32,8 +32,9 @@ const ResetPassword = () => {
         await setActive({ session: result.createdSessionId });
         navigate("/");
       }
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Σφάλμα επαναφοράς.");
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ longMessage?: string }>; message?: string };
+      setError(e?.errors?.[0]?.longMessage ?? e?.message ?? "Σφάλμα επαναφοράς.");
     } finally {
       setLoading(false);
     }

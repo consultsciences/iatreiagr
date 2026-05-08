@@ -116,7 +116,7 @@ const DoctorOnboarding = () => {
     if (!authLoading && user && stepIdx === 0) {
       setStepIdx(1);
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, stepIdx]);
 
   const progress = useMemo(() => ((stepIdx + 1) / STEPS.length) * 100, [stepIdx]);
 
@@ -181,8 +181,8 @@ const DoctorOnboarding = () => {
       }
       toast({ title: "Επιτυχία", description: "Το προφίλ σας δημιουργήθηκε." });
       setStepIdx(4);
-    } catch (err: any) {
-      toast({ title: "Σφάλμα", description: err?.message ?? "Κάτι πήγε στραβά", variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα", description: err instanceof Error ? err.message : "Κάτι πήγε στραβά", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }

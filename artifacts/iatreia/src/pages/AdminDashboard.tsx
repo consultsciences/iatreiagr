@@ -385,7 +385,7 @@ const AdminDashboard = () => {
       const data = await res.json();
       setIsAdmin(data.is_admin === true);
     })();
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, session]);
 
   const loadDoctors = useCallback(
     async (verified: boolean, page: number) => {
@@ -408,10 +408,10 @@ const AdminDashboard = () => {
         const { doctors, total } = await res.json();
         setRows(doctors ?? []);
         setTotal(total ?? 0);
-      } catch (err: any) {
+      } catch (err: unknown) {
         toast({
           title: "Σφάλμα φόρτωσης",
-          description: `Δεν ήταν δυνατή η φόρτωση των ${verified ? "πιστοποιημένων" : "εκκρεμών"} ιατρών. ${err?.message ?? ""}`,
+          description: `Δεν ήταν δυνατή η φόρτωση των ${verified ? "πιστοποιημένων" : "εκκρεμών"} ιατρών. ${err instanceof Error ? err.message : ""}`,
           variant: "destructive",
         });
         setRows([]);
@@ -445,10 +445,10 @@ const AdminDashboard = () => {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setAuditEntries(await res.json());
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Σφάλμα φόρτωσης audit log",
-        description: err?.message,
+        description: err instanceof Error ? err.message : undefined,
         variant: "destructive",
       });
       setAuditEntries([]);
@@ -496,8 +496,8 @@ const AdminDashboard = () => {
         const err = await res.json().catch(() => ({}));
         updateError = err?.error || `HTTP ${res.status}`;
       }
-    } catch (err: any) {
-      updateError = err?.message ?? "Network error";
+    } catch (err: unknown) {
+      updateError = err instanceof Error ? err.message : "Network error";
     }
     setBusyId(null);
     if (updateError) {
@@ -548,12 +548,12 @@ const AdminDashboard = () => {
         setClaims((prev) => prev.map((c) => (c.id === id ? fresh : c)));
         setSelectedClaim((prev) => (prev && prev.id === id ? fresh : prev));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (attempt < 1) {
         await new Promise((r) => setTimeout(r, 600));
         return refetchClaim(id, attempt + 1);
       }
-      console.warn("Failed to refetch claim after rollback:", err?.message);
+      console.warn("Failed to refetch claim after rollback:", err instanceof Error ? err.message : err);
     }
   };
 
@@ -582,8 +582,8 @@ const AdminDashboard = () => {
         if (res.ok || res.status === 201) return { ok: true };
         const err = await res.json().catch(() => ({}));
         lastError = err?.error || `HTTP ${res.status}`;
-      } catch (err: any) {
-        lastError = err?.message ?? "Network error";
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err.message : "Network error";
       }
       console.warn(`Audit log insert failed (attempt ${attempt}/${maxAttempts}) for claim ${payload.claim_id}: ${lastError}`);
       if (attempt < maxAttempts) {
@@ -628,8 +628,8 @@ const AdminDashboard = () => {
         const err = await res.json().catch(() => ({}));
         claimError = err?.error || `HTTP ${res.status}`;
       }
-    } catch (err: any) {
-      claimError = err?.message ?? "Network error";
+    } catch (err: unknown) {
+      claimError = err instanceof Error ? err.message : "Network error";
     }
     setBusyId(null);
     if (claimError) {
@@ -1781,6 +1781,7 @@ const DoctorDetailsSheet = ({
 );
 
 type DoctorLite = {
+  user_id: string;
   full_name: string;
   specialty: string | null;
   email: string | null;
@@ -1830,7 +1831,7 @@ const ClaimDetailsSheet = ({
         .then((r) => r.ok ? r.json() : { doctors: [] })
         .then(({ doctors }) => {
           if (cancelled) return;
-          const match = doctors?.find((d: any) => d.user_id === claim.user_id) ?? null;
+          const match = doctors?.find((d: DoctorLite) => d.user_id === claim.user_id) ?? null;
           setDoctor(match);
           setDoctorLoading(false);
         })
@@ -1841,7 +1842,7 @@ const ClaimDetailsSheet = ({
     return () => {
       cancelled = true;
     };
-  }, [claim?.id, claim?.user_id]);
+  }, [claim, sheetSession]);
 
   const timeline = claim
     ? [

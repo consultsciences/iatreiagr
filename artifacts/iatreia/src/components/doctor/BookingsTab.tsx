@@ -1,7 +1,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-interface Props { bookings: any[]; }
+export interface DoctorBooking {
+  id: string;
+  patient_name: string;
+  appointment_date: string;
+  appointment_slot: string;
+  visit_type: string;
+  status: string;
+  reason?: string | null;
+}
+
+interface Props { bookings: DoctorBooking[]; }
 
 const BookingsTab = ({ bookings }: Props) => (
   <Card>

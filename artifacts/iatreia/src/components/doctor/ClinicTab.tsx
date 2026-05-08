@@ -6,8 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { privateClinics } from "@/data/privateClinics";
 
+export interface ClaimRecord {
+  id: string;
+  clinic_id: string;
+  status: string;
+}
+
 interface Props {
-  claims: any[];
+  claims: ClaimRecord[];
   clinicQuery: string;
   setClinicQuery: (q: string) => void;
   onClaim: (clinicId: string) => void;
