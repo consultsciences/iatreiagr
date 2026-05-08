@@ -52,7 +52,17 @@ export const ListingCategoryPage = ({ category, title, subtitle, disclaimer }: P
             <ArrowLeft className="h-4 w-4" /> Αρχική
           </Link>
           <Badge variant="secondary" className="mb-3">Κατηγορία</Badge>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{title}</h1>
+          <div className="flex flex-wrap items-baseline gap-3">
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{title}</h1>
+            {!loading && (
+              <span className="text-lg font-medium text-muted-foreground">
+                {filtered.length} {filtered.length === 1 ? "αγγελία" : "αγγελίες"}
+              </span>
+            )}
+            {loading && (
+              <span className="text-lg text-muted-foreground opacity-60">…</span>
+            )}
+          </div>
           <p className="mt-3 max-w-2xl text-muted-foreground">{subtitle}</p>
 
           <Card className="mt-6 p-2">
