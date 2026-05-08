@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Building2, Menu, X, Plus } from "lucide-react";
+import { Menu, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/Logo";
 
 const nav = [
   { to: "/spaces", label: "Ιατρικοί Χώροι" },
@@ -19,14 +20,7 @@ export const SiteHeader = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            iatreia<span className="text-accent">.gr</span>
-          </span>
-        </Link>
+        <Logo size="md" />
 
         <nav className="hidden items-center gap-1 xl:flex">
           {nav.map((n) => (

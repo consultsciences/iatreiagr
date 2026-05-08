@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO, isPast, differenceInHours } from "date-fns";
 import { el } from "date-fns/locale";
 import {
-  Calendar as CalendarIcon, Clock, MapPin, Video, Stethoscope, LogOut,
+  Calendar as CalendarIcon, Clock, MapPin, Video, LogOut,
   Loader2, Search as SearchIcon, X, Ban,
 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -177,9 +178,7 @@ const BookingsPage = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/80 backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2 text-lg font-bold text-primary">
-            <Stethoscope className="h-6 w-6" /> iatreia.gr
-          </Link>
+          <Logo size="md" />
           <div className="flex items-center gap-2">
             <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>

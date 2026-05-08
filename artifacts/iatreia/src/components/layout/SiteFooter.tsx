@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Building2 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 const cols = [
   {
@@ -46,14 +46,9 @@ export const SiteFooter = () => (
     <div className="container mx-auto px-4 py-14">
       <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-1">
-          <Link to="/" className="mb-3 flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <span className="text-lg font-bold">
-              iatreia<span className="text-accent">.gr</span>
-            </span>
-          </Link>
+          <div className="mb-3">
+            <Logo size="md" />
+          </div>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Η εξειδικευμένη ελληνική πλατφόρμα αγγελιών για χώρους, εξοπλισμό, προσωπικό
             και υπηρεσίες υγείας.

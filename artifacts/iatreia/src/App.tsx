@@ -37,8 +37,38 @@ const queryClient = new QueryClient();
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+const basePath = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+
+const clerkAppearance = {
+  options: {
+    logoPlacement: "inside" as const,
+    logoLinkUrl: `${window.location.origin}${basePath}/`,
+    logoImageUrl: `${window.location.origin}${basePath}/logo.png`,
+  },
+  variables: {
+    colorPrimary: "#9b5e4d",
+    colorTextOnPrimaryBackground: "#ffffff",
+    borderRadius: "0.5rem",
+  },
+};
+
+const clerkLocalization = {
+  signIn: {
+    start: {
+      title: "Καλώς ήρθατε στο iatreia.gr",
+      subtitle: "Συνδεθείτε στον λογαριασμό σας",
+    },
+  },
+  signUp: {
+    start: {
+      title: "Δημιουργία λογαριασμού",
+      subtitle: "Εγγραφείτε στο iatreia.gr",
+    },
+  },
+};
+
 const App = () => (
-  <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+  <ClerkProvider publishableKey={PUBLISHABLE_KEY} appearance={clerkAppearance} localization={clerkLocalization}>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
