@@ -232,8 +232,6 @@ const wallClockToUtcMs = (dateStr: string, timeStr: string, timeZone: string): n
   return utcGuess - offset;
 };
 
-const escapeForOr = (s: string) => s.replace(/[,()*]/g, " ").trim();
-
 const claimStatusLabel = (status: string) => {
   switch (status) {
     case "pending":
@@ -300,14 +298,14 @@ const AdminDashboard = () => {
   const browserTimezone = useMemo(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    } catch {
+    } catch (_e) {
       return "UTC";
     }
   }, []);
   const [auditTimezone, setAuditTimezone] = useState<string>(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Athens";
-    } catch {
+    } catch (_e) {
       return "Europe/Athens";
     }
   });
@@ -434,7 +432,7 @@ const AdminDashboard = () => {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setClaims(await res.json());
-    } catch { setClaims([]); }
+    } catch (_e) { setClaims([]); }
     setClaimsLoading(false);
   }, [session]);
 
@@ -769,7 +767,7 @@ const AdminDashboard = () => {
 
       if (!res.ok) {
         let detail = `${res.status} ${res.statusText}`;
-        try { const j = await res.json(); if (j?.error) detail = j.error; } catch { }
+        try { const j = await res.json(); if (j?.error) detail = j.error; } catch (_e) { /* ignore parse errors */ }
         throw new Error(detail);
       }
 

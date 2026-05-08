@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Stethoscope } from "lucide-react";
-import { SignIn, SignUp, useUser } from "@clerk/clerk-react";
+import { SignIn, useUser } from "@clerk/clerk-react";
 
 const DoctorAuthPage = () => {
   const navigate = useNavigate();

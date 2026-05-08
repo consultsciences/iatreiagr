@@ -46,7 +46,7 @@ function loadOverrides(): Record<number, OverrideEntry> {
   }
 }
 
-let OVERRIDES: Record<number, OverrideEntry> = loadOverrides();
+const OVERRIDES: Record<number, OverrideEntry> = loadOverrides();
 const listeners = new Set<() => void>();
 
 function persist() {

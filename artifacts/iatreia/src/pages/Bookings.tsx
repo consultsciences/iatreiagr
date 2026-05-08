@@ -4,7 +4,7 @@ import { format, parseISO, isPast, differenceInHours } from "date-fns";
 import { el } from "date-fns/locale";
 import {
   Calendar as CalendarIcon, Clock, MapPin, Video, Stethoscope, LogOut,
-  Loader2, CheckCircle2, Search as SearchIcon, X, Ban,
+  Loader2, Search as SearchIcon, X, Ban,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
