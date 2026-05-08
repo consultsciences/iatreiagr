@@ -16,6 +16,11 @@ const { mockGetAuth, mockDb } = vi.hoisted(() => {
 vi.mock("@clerk/express", () => ({
   getAuth: mockGetAuth,
   clerkMiddleware: () => (_req: express.Request, _res: express.Response, next: express.NextFunction) => next(),
+  clerkClient: { users: { getUser: vi.fn().mockResolvedValue({ emailAddresses: [], primaryEmailAddressId: null }) } },
+}));
+
+vi.mock("../lib/listingEmail.js", () => ({
+  notifySellerOfListingStatusChange: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@workspace/db", () => ({
