@@ -20,6 +20,28 @@ interface InProcessCache {
 
 let inProcessCache: InProcessCache | null = null;
 
+interface CacheMetrics {
+  hits_process: number;
+  hits_db: number;
+  misses: number;
+  stale_db_rows: number;
+  invalidations: number;
+  last_invalidation_at: string | null;
+  last_invalidation_caller: string | null;
+  last_stale_row_age_ms: number | null;
+}
+
+const cacheMetrics: CacheMetrics = {
+  hits_process: 0,
+  hits_db: 0,
+  misses: 0,
+  stale_db_rows: 0,
+  invalidations: 0,
+  last_invalidation_at: null,
+  last_invalidation_caller: null,
+  last_stale_row_age_ms: null,
+};
+
 async function fetchCountsFromDb(): Promise<Record<string, number>> {
   const rows = await db
     .select({ category: listingsTable.category, count: count() })
@@ -39,21 +61,6 @@ async function fetchCountsFromDb(): Promise<Record<string, number>> {
   return counts;
 }
 
-async function getCountsFromSharedCache(): Promise<Record<string, number> | null> {
-  const [row] = await db
-    .select()
-    .from(listingCountsCacheTable)
-    .where(eq(listingCountsCacheTable.id, CACHE_ROW_ID))
-    .limit(1);
-
-  if (!row) return null;
-
-  const ageMs = Date.now() - new Date(row.updated_at).getTime();
-  if (ageMs > COUNTS_CACHE_TTL_MS) return null;
-
-  return row.counts as Record<string, number>;
-}
-
 async function writeCountsToSharedCache(counts: Record<string, number>): Promise<void> {
   await db
     .insert(listingCountsCacheTable)
@@ -70,8 +77,13 @@ async function deleteSharedCache(): Promise<void> {
     .where(eq(listingCountsCacheTable.id, CACHE_ROW_ID));
 }
 
-export function invalidateCountsCache(): void {
+export function invalidateCountsCache(caller = "unknown"): void {
+  const ts = new Date().toISOString();
   inProcessCache = null;
+  cacheMetrics.invalidations += 1;
+  cacheMetrics.last_invalidation_at = ts;
+  cacheMetrics.last_invalidation_caller = caller;
+  console.log(`[counts-cache] INVALIDATE caller=${caller} at=${ts}`);
   deleteSharedCache().catch((err) => {
     console.error("[counts-cache] failed to delete shared cache row:", err);
   });
@@ -102,23 +114,48 @@ async function generateUniqueSlug(base: string, attempts = 5): Promise<string> {
   return `${slug}-${Date.now()}`;
 }
 
+router.get("/listings/counts/metrics", (_req, res) => {
+  res.json({ ...cacheMetrics });
+});
+
 router.get("/listings/counts", async (req, res) => {
   const now = Date.now();
 
   if (inProcessCache && now < inProcessCache.expiresAt) {
+    cacheMetrics.hits_process += 1;
+    const ttlRemaining = inProcessCache.expiresAt - now;
+    console.log(`[counts-cache] HIT-PROCESS ttl_remaining_ms=${ttlRemaining}`);
     res.setHeader("Cache-Control", "public, max-age=60");
     res.setHeader("X-Cache", "HIT-PROCESS");
     res.json(inProcessCache.data);
     return;
   }
 
-  const shared = await getCountsFromSharedCache();
-  if (shared) {
-    inProcessCache = { data: shared, expiresAt: now + IN_PROCESS_TTL_MS };
-    res.setHeader("Cache-Control", "public, max-age=60");
-    res.setHeader("X-Cache", "HIT-DB");
-    res.json(shared);
-    return;
+  const sharedRow = await (async () => {
+    const [row] = await db
+      .select()
+      .from(listingCountsCacheTable)
+      .where(eq(listingCountsCacheTable.id, CACHE_ROW_ID))
+      .limit(1);
+    return row ?? null;
+  })();
+
+  if (sharedRow) {
+    const ageMs = now - new Date(sharedRow.updated_at).getTime();
+    if (ageMs <= COUNTS_CACHE_TTL_MS) {
+      const shared = sharedRow.counts as Record<string, number>;
+      inProcessCache = { data: shared, expiresAt: now + IN_PROCESS_TTL_MS };
+      cacheMetrics.hits_db += 1;
+      console.log(`[counts-cache] HIT-DB age_ms=${ageMs}`);
+      res.setHeader("Cache-Control", "public, max-age=60");
+      res.setHeader("X-Cache", "HIT-DB");
+      res.setHeader("X-Cache-Age-Ms", String(ageMs));
+      res.json(shared);
+      return;
+    }
+    cacheMetrics.stale_db_rows += 1;
+    cacheMetrics.last_stale_row_age_ms = now - new Date(sharedRow.updated_at).getTime();
+    console.log(`[counts-cache] STALE-DB age_ms=${cacheMetrics.last_stale_row_age_ms} ttl_ms=${COUNTS_CACHE_TTL_MS}`);
   }
 
   const data = await fetchCountsFromDb();
@@ -126,9 +163,13 @@ router.get("/listings/counts", async (req, res) => {
   writeCountsToSharedCache(data).catch((err) => {
     console.error("[counts-cache] failed to write shared cache:", err);
   });
+  cacheMetrics.misses += 1;
+  const staleAgeMs = sharedRow ? now - new Date(sharedRow.updated_at).getTime() : null;
+  console.log(`[counts-cache] MISS fetched fresh counts from DB${staleAgeMs !== null ? ` stale_row_age_ms=${staleAgeMs}` : ""}`);
 
   res.setHeader("Cache-Control", "public, max-age=60");
   res.setHeader("X-Cache", "MISS");
+  if (staleAgeMs !== null) res.setHeader("X-Cache-Stale-Age-Ms", String(staleAgeMs));
   res.json(data);
 });
 
@@ -242,7 +283,7 @@ router.delete("/listings/:id", async (req, res) => {
   await db.delete(listingsTable).where(eq(listingsTable.id, req.params.id));
 
   if (existing.status === "published") {
-    invalidateCountsCache();
+    invalidateCountsCache("DELETE /api/listings/:id");
   }
 
   res.status(204).end();

@@ -174,7 +174,7 @@ router.patch("/admin/listings/:id", async (req, res) => {
 
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
-  invalidateCountsCache();
+  invalidateCountsCache("PATCH /api/admin/listings/:id");
 
   res.json(row);
 });
