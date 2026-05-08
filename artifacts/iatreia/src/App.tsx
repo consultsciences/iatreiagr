@@ -31,6 +31,10 @@ import ClinicsAdmin from "./pages/ClinicsAdmin.tsx";
 import MedicalTourism from "./pages/MedicalTourism.tsx";
 import Post from "./pages/Post.tsx";
 import MyListings from "./pages/MyListings.tsx";
+import Terms from "./pages/Terms.tsx";
+import Privacy from "./pages/Privacy.tsx";
+import ListingsPolicy from "./pages/ListingsPolicy.tsx";
+import Report from "./pages/Report.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -106,6 +110,10 @@ const App = () => (
               <Route path="/doctors/dashboard" element={<DoctorDashboard />} />
               <Route path="/doctors/onboarding" element={<DoctorOnboarding />} />
               <Route path="/doctors/:userId" element={<DoctorProfile />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/listings-policy" element={<ListingsPolicy />} />
+              <Route path="/report" element={<Report />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
