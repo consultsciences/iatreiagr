@@ -19,6 +19,7 @@ export type DbListing = {
   contact_phone: string | null;
   featured: boolean;
   status: string;
+  user_id: string | null;
   created_at: string;
 };
 
@@ -62,4 +63,70 @@ export async function fetchListingBySlug(slug: string) {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch listing: ${res.status}`);
   return res.json() as Promise<DbListing>;
+}
+
+export async function fetchMyListings(token: string): Promise<DbListing[]> {
+  const res = await fetch(`${BASE}/api/listings/mine`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch listings: ${res.status}`);
+  return res.json() as Promise<DbListing[]>;
+}
+
+export type CreateListingInput = {
+  category: DbListing["category"];
+  title: string;
+  description?: string;
+  city?: string;
+  region?: string;
+  price?: string;
+  price_unit?: string;
+  price_label?: string;
+  image_url?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+};
+
+export async function createListing(input: CreateListingInput, token: string): Promise<DbListing> {
+  const res = await fetch(`${BASE}/api/listings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? `Request failed: ${res.status}`);
+  }
+  return res.json() as Promise<DbListing>;
+}
+
+export async function updateListing(id: string, input: CreateListingInput, token: string): Promise<DbListing> {
+  const res = await fetch(`${BASE}/api/listings/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? `Request failed: ${res.status}`);
+  }
+  return res.json() as Promise<DbListing>;
+}
+
+export async function deleteListing(id: string, token: string): Promise<void> {
+  const res = await fetch(`${BASE}/api/listings/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? `Request failed: ${res.status}`);
+  }
 }

@@ -21,6 +21,7 @@ export const listingsTable = pgTable("listings", {
   contact_phone: text("contact_phone"),
   featured: boolean("featured").notNull().default(false),
   status: text("status").notNull().default("published"),
+  user_id: text("user_id"),
   created_at: timestamp("created_at").notNull().defaultNow(),
 });
 

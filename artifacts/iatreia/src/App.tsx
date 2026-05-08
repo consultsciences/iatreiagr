@@ -29,6 +29,8 @@ import Ask from "./pages/Ask.tsx";
 import Clinics from "./pages/Clinics.tsx";
 import ClinicsAdmin from "./pages/ClinicsAdmin.tsx";
 import MedicalTourism from "./pages/MedicalTourism.tsx";
+import Post from "./pages/Post.tsx";
+import MyListings from "./pages/MyListings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -67,6 +69,8 @@ const App = () => (
               <Route path="/bookings" element={<Bookings />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/post" element={<Post />} />
+              <Route path="/my-listings" element={<MyListings />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/doctors/auth" element={<DoctorAuth />} />
               <Route path="/doctors/dashboard" element={<DoctorDashboard />} />
