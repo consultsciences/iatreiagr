@@ -7,6 +7,8 @@ import { AdminUpdateDoctorBody, AdminUpdateClaimBody, AdminCreateAuditLogBody, A
 import type { DoctorProfile, ClinicClaim, ClinicClaimAuditLog } from "@workspace/db";
 import { invalidateCountsCache } from "./listings";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { notifySellerOfListingStatusChange } from "../lib/listingEmail";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -143,15 +145,34 @@ router.patch("/admin/listings/:id", requireAdmin, async (req, res) => {
   const parsed = AdminUpdateListingStatusBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
+  const [existing] = await db
+    .select({ status: listingsTable.status })
+    .from(listingsTable)
+    .where(eq(listingsTable.id, req.params.id))
+    .limit(1);
+
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+  const previousStatus = existing.status;
+  const newStatus = parsed.data.status;
+
   const [row] = await db
     .update(listingsTable)
-    .set({ status: parsed.data.status })
+    .set({ status: newStatus })
     .where(eq(listingsTable.id, req.params.id))
     .returning();
 
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
 
   invalidateCountsCache("PATCH /api/admin/listings/:id");
+
+  const isStatusTransition = newStatus !== previousStatus;
+  const isNotifiableStatus = newStatus === "published" || newStatus === "archived";
+  if (row.user_id && isStatusTransition && isNotifiableStatus) {
+    notifySellerOfListingStatusChange(row.user_id, row.title, row.status).catch((err) => {
+      logger.error({ err, listingId: row.id, userId: row.user_id, status: row.status }, "admin: unexpected error in listing email notification");
+    });
+  }
 
   res.json(row);
 });
