@@ -42,6 +42,21 @@ export async function fetchFeaturedListings(limit = 6) {
   return res.json() as Promise<DbListing[]>;
 }
 
+export type ListingCounts = {
+  spaces?: number;
+  equipment?: number;
+  jobs?: number;
+  supplies?: number;
+  services?: number;
+  total?: number;
+};
+
+export async function fetchListingCounts(): Promise<ListingCounts> {
+  const res = await fetch(`${BASE}/api/listings/counts`);
+  if (!res.ok) throw new Error(`Failed to fetch counts: ${res.status}`);
+  return res.json() as Promise<ListingCounts>;
+}
+
 export async function fetchListingBySlug(slug: string) {
   const res = await fetch(`${BASE}/api/listings/${encodeURIComponent(slug)}`);
   if (res.status === 404) return null;

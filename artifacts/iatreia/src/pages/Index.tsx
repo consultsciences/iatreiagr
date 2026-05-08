@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import {
   Search, MapPin, Building2, Stethoscope, Briefcase, Package, HandCoins,
@@ -13,21 +13,31 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { ListingCard } from "@/components/listings/ListingCard";
-import { fetchFeaturedListings, type DbListing } from "@/lib/listings";
+import { fetchFeaturedListings, fetchListingCounts, type DbListing, type ListingCounts } from "@/lib/listings";
 import heroImg from "@/assets/hero-clinic.jpg";
 
-const categories = [
-  { to: "/spaces", icon: Building2, title: "Ιατρικοί Χώροι", desc: "Ιατρεία, κλινικές, διαγνωστικά κέντρα προς ενοικίαση ή πώληση", count: "120+ αγγελίες" },
-  { to: "/equipment", icon: Stethoscope, title: "Ιατρικός Εξοπλισμός", desc: "Νέος, μεταχειρισμένος, refurbished — αγορά, leasing ή ενοικίαση", count: "340+ αγγελίες" },
-  { to: "/jobs", icon: Briefcase, title: "Θέσεις Εργασίας", desc: "Ιατροί, οδοντίατροι, νοσηλευτές, διοικητικό προσωπικό", count: "85+ θέσεις" },
-  { to: "/supplies", icon: Package, title: "Αναλώσιμα & Προμήθειες", desc: "Προμηθευτές αναλωσίμων, εξοπλισμού γραφείου, στειρωτικών", count: "60+ προμηθευτές" },
-  { to: "/services", icon: HandCoins, title: "Υπηρεσίες & Συνεργάτες", desc: "Τράπεζες, leasing, αδειοδότηση, κατασκευή, νομικοί, λογιστές", count: "200+ συνεργάτες" },
-  { to: "/clinic-launch", icon: Sparkles, title: "Άνοιγμα Ιατρείου", desc: "Ολοκληρωμένα πακέτα: χώρος + εξοπλισμός + άδειες + χρηματοδότηση", count: "Νέο" },
+type CategoryKey = keyof Omit<ListingCounts, "total">;
+
+const categories: {
+  to: string;
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+  countKey?: CategoryKey;
+  countSuffix: string;
+  fallback: string;
+}[] = [
+  { to: "/spaces", icon: Building2, title: "Ιατρικοί Χώροι", desc: "Ιατρεία, κλινικές, διαγνωστικά κέντρα προς ενοικίαση ή πώληση", countKey: "spaces", countSuffix: "αγγελίες", fallback: "120+ αγγελίες" },
+  { to: "/equipment", icon: Stethoscope, title: "Ιατρικός Εξοπλισμός", desc: "Νέος, μεταχειρισμένος, refurbished — αγορά, leasing ή ενοικίαση", countKey: "equipment", countSuffix: "αγγελίες", fallback: "340+ αγγελίες" },
+  { to: "/jobs", icon: Briefcase, title: "Θέσεις Εργασίας", desc: "Ιατροί, οδοντίατροι, νοσηλευτές, διοικητικό προσωπικό", countKey: "jobs", countSuffix: "θέσεις", fallback: "85+ θέσεις" },
+  { to: "/supplies", icon: Package, title: "Αναλώσιμα & Προμήθειες", desc: "Προμηθευτές αναλωσίμων, εξοπλισμού γραφείου, στειρωτικών", countKey: "supplies", countSuffix: "προμηθευτές", fallback: "60+ προμηθευτές" },
+  { to: "/services", icon: HandCoins, title: "Υπηρεσίες & Συνεργάτες", desc: "Τράπεζες, leasing, αδειοδότηση, κατασκευή, νομικοί, λογιστές", countKey: "services", countSuffix: "συνεργάτες", fallback: "200+ συνεργάτες" },
+  { to: "/clinic-launch", icon: Sparkles, title: "Άνοιγμα Ιατρείου", desc: "Ολοκληρωμένα πακέτα: χώρος + εξοπλισμός + άδειες + χρηματοδότηση", countSuffix: "", fallback: "Νέο" },
 ];
 
 const cities = ["Αθήνα", "Θεσσαλονίκη", "Πάτρα", "Ηράκλειο", "Λάρισα", "Βόλος", "Ιωάννινα", "Χανιά"];
 
-const trustStats = [
+const TRUST_STATS_STATIC = [
   { v: "8.500+", l: "Επαγγελματίες υγείας" },
   { v: "1.200+", l: "Ενεργές αγγελίες" },
   { v: "300+", l: "Επαληθευμένοι συνεργάτες" },
@@ -55,10 +65,17 @@ const faqs = [
   { q: "Μπορώ να συνδέσω την αγγελία μου με το προφίλ μου στο iatreio.gr;", a: "Ναι. Οι λογαριασμοί iatreia.gr και iatreio.gr διασυνδέονται, ώστε ασθενείς και επαγγελματίες να βλέπουν συνδυασμένες πληροφορίες." },
 ];
 
+function formatCount(n: number, suffix: string): string {
+  return `${n.toLocaleString("el-GR")} ${suffix}`;
+}
+
 const Index = () => {
   const [featured, setFeatured] = useState<DbListing[]>([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [featuredError, setFeaturedError] = useState(false);
+  const [counts, setCounts] = useState<ListingCounts | null>(null);
+  const [countsLoaded, setCountsLoaded] = useState(false);
+
   useEffect(() => {
     setFeaturedLoading(true);
     setFeaturedError(false);
@@ -66,7 +83,18 @@ const Index = () => {
       .then(setFeatured)
       .catch(() => setFeaturedError(true))
       .finally(() => setFeaturedLoading(false));
+
+    fetchListingCounts()
+      .then((data) => { setCounts(data); setCountsLoaded(true); })
+      .catch(() => {});
   }, []);
+
+  const trustStats = TRUST_STATS_STATIC.map((s) => {
+    if (s.l === "Ενεργές αγγελίες" && countsLoaded && counts?.total != null) {
+      return { v: counts.total.toLocaleString("el-GR"), l: s.l };
+    }
+    return s;
+  });
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -178,7 +206,11 @@ const Index = () => {
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                       <c.icon className="h-6 w-6" />
                     </div>
-                    <span className="text-xs font-medium text-muted-foreground">{c.count}</span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {c.countKey && countsLoaded && counts?.[c.countKey] != null
+                        ? formatCount(counts[c.countKey]!, c.countSuffix)
+                        : c.fallback}
+                    </span>
                   </div>
                   <h3 className="mb-2 text-lg font-semibold text-foreground">{c.title}</h3>
                   <p className="mb-4 text-sm leading-relaxed text-muted-foreground">{c.desc}</p>

@@ -1,9 +1,29 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { listingsTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 
 const router = Router();
+
+const KNOWN_CATEGORIES = ["spaces", "equipment", "jobs", "supplies", "services"] as const;
+
+router.get("/listings/counts", async (req, res) => {
+  const rows = await db
+    .select({ category: listingsTable.category, count: count() })
+    .from(listingsTable)
+    .where(eq(listingsTable.status, "published"))
+    .groupBy(listingsTable.category);
+
+  const counts: Record<string, number> = Object.fromEntries(
+    KNOWN_CATEGORIES.map((c) => [c, 0])
+  );
+  let total = 0;
+  for (const row of rows) {
+    counts[row.category] = Number(row.count);
+    total += Number(row.count);
+  }
+  res.json({ ...counts, total });
+});
 
 router.get("/listings", async (req, res) => {
   const { category, featured, limit = "50" } = req.query as Record<string, string>;
