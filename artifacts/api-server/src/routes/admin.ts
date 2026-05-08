@@ -3,7 +3,7 @@ import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { doctorProfilesTable, clinicClaimsTable, clinicClaimAuditLogTable, userRolesTable, listingsTable } from "@workspace/db";
 import { eq, and, desc, ilike, or, sql, gte, lte, like, SQL } from "drizzle-orm";
-import { AdminUpdateDoctorBody, AdminUpdateClaimBody, AdminCreateAuditLogBody } from "@workspace/api-zod";
+import { AdminUpdateDoctorBody, AdminUpdateClaimBody, AdminCreateAuditLogBody, AdminUpdateListingStatusBody } from "@workspace/api-zod";
 import type { DoctorProfile, ClinicClaim, ClinicClaimAuditLog } from "@workspace/db";
 import { invalidateCountsCache } from "./listings";
 
@@ -163,16 +163,12 @@ router.patch("/admin/listings/:id", async (req, res) => {
   const { userId } = getAuth(req);
   if (!userId || !(await isAdmin(userId))) { res.status(403).json({ error: "Forbidden" }); return; }
 
-  const { status } = req.body as { status?: string };
-  const VALID_STATUSES = ["published", "draft", "archived"] as const;
-  if (!status || !VALID_STATUSES.includes(status as typeof VALID_STATUSES[number])) {
-    res.status(400).json({ error: "status must be one of: published, draft, archived" });
-    return;
-  }
+  const parsed = AdminUpdateListingStatusBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
   const [row] = await db
     .update(listingsTable)
-    .set({ status })
+    .set({ status: parsed.data.status })
     .where(eq(listingsTable.id, req.params.id))
     .returning();
 

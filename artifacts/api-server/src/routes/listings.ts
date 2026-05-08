@@ -3,11 +3,11 @@ import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { listingsTable, listingCountsCacheTable } from "@workspace/db";
 import { eq, and, desc, count, sql } from "drizzle-orm";
+import { CreateListingBody, UpdateListingBody } from "@workspace/api-zod";
 
 const router = Router();
 
 const KNOWN_CATEGORIES = ["spaces", "equipment", "jobs", "supplies", "services"] as const;
-type KnownCategory = typeof KNOWN_CATEGORIES[number];
 
 const COUNTS_CACHE_TTL_MS = 60_000;
 const IN_PROCESS_TTL_MS = 10_000;
@@ -174,99 +174,12 @@ router.get("/listings/:slug", async (req, res) => {
   res.json(row);
 });
 
-const VALID_CATEGORIES: KnownCategory[] = ["spaces", "equipment", "jobs", "supplies", "services"];
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const URL_RE = /^https?:\/\/.+/;
-
-function str(v: unknown): string | null {
-  if (v === undefined || v === null) return null;
-  const s = String(v).trim();
-  return s.length > 0 ? s : null;
-}
-
-type ParsedBody =
-  | { error: string }
-  | {
-      data: {
-        category: KnownCategory;
-        title: string;
-        description: string | null;
-        city: string | null;
-        region: string | null;
-        price: string | null;
-        price_unit: string | null;
-        price_label: string | null;
-        image_url: string | null;
-        contact_name: string | null;
-        contact_email: string | null;
-        contact_phone: string | null;
-      };
-    };
-
-function parseListingBody(body: Record<string, unknown>): ParsedBody {
-  const raw = body as Record<string, unknown>;
-
-  const category = str(raw.category);
-  if (!category || !VALID_CATEGORIES.includes(category as KnownCategory)) {
-    return { error: `category must be one of: ${VALID_CATEGORIES.join(", ")}` };
-  }
-
-  const title = str(raw.title);
-  if (!title || title.length < 3) {
-    return { error: "title must be at least 3 characters" };
-  }
-  if (title.length > 200) {
-    return { error: "title must be 200 characters or fewer" };
-  }
-
-  const priceRaw = str(raw.price);
-  if (priceRaw !== null) {
-    const n = Number(priceRaw);
-    if (!Number.isFinite(n) || n < 0) {
-      return { error: "price must be a non-negative number" };
-    }
-  }
-
-  const contact_email = str(raw.contact_email);
-  if (contact_email && !EMAIL_RE.test(contact_email)) {
-    return { error: "contact_email is not a valid email address" };
-  }
-
-  const image_url = str(raw.image_url);
-  if (image_url && !URL_RE.test(image_url)) {
-    return { error: "image_url must be a valid http/https URL" };
-  }
-
-  const description = str(raw.description);
-  if (description && description.length > 10_000) {
-    return { error: "description must be 10,000 characters or fewer" };
-  }
-
-  return {
-    data: {
-      category: category as KnownCategory,
-      title,
-      description,
-      city: str(raw.city),
-      region: str(raw.region),
-      price: priceRaw,
-      price_unit: str(raw.price_unit),
-      price_label: str(raw.price_label),
-      image_url,
-      contact_name: str(raw.contact_name),
-      contact_email,
-      contact_phone: str(raw.contact_phone),
-    },
-  };
-}
-
 router.post("/listings", async (req, res) => {
   const { userId } = getAuth(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  const parsed = parseListingBody(req.body);
-  if ("error" in parsed) { res.status(400).json({ error: parsed.error }); return; }
+  const parsed = CreateListingBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
   const slug = await generateUniqueSlug(parsed.data.title);
 
@@ -301,8 +214,8 @@ router.put("/listings/:id", async (req, res) => {
     return;
   }
 
-  const parsed = parseListingBody(req.body);
-  if ("error" in parsed) { res.status(400).json({ error: parsed.error }); return; }
+  const parsed = UpdateListingBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues }); return; }
 
   const [row] = await db
     .update(listingsTable)
