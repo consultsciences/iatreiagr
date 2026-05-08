@@ -114,7 +114,17 @@ async function generateUniqueSlug(base: string, attempts = 5): Promise<string> {
   return `${slug}-${Date.now()}`;
 }
 
-router.get("/listings/counts/metrics", (_req, res) => {
+router.get("/listings/counts/metrics", async (req, res) => {
+  const { userId } = getAuth(req);
+  if (!userId) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const [adminRow] = await db
+    .select()
+    .from(userRolesTable)
+    .where(and(eq(userRolesTable.user_id, userId), eq(userRolesTable.role, "admin")))
+    .limit(1);
+  if (!adminRow) { res.status(403).json({ error: "Forbidden" }); return; }
+
   res.json({ ...cacheMetrics });
 });
 
