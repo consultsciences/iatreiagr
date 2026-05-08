@@ -121,6 +121,8 @@ vi.mock("./listings.js", () => ({
 }));
 
 import adminRouter from "./admin.js";
+import { invalidateCountsCache } from "./listings.js";
+import { notifySellerOfListingStatusChange } from "../lib/listingEmail.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -409,5 +411,196 @@ describe("GET /api/admin/listings — combined filters with pagination", () => {
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(3); // 3 match status+category+search
     expect(res.body.listings).toHaveLength(1); // only 1 returned due to limit
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/listings/:id — helpers
+// ---------------------------------------------------------------------------
+
+type PatchMockOpts = {
+  existingStatus: string | null;
+  updatedRow?: Row;
+};
+
+function setupPatchDbMock({ existingStatus, updatedRow }: PatchMockOpts) {
+  mockDb.select.mockImplementation(() => {
+    const chain: Record<string, unknown> = {};
+    chain.from = vi.fn(() => chain);
+    chain.where = vi.fn(() => chain);
+    chain.limit = vi.fn(() =>
+      Promise.resolve(existingStatus === null ? [] : [{ status: existingStatus }]),
+    );
+    return chain;
+  });
+
+  mockDb.update.mockImplementation(() => {
+    const chain: Record<string, unknown> = {};
+    chain.set = vi.fn(() => chain);
+    chain.where = vi.fn(() => chain);
+    chain.returning = vi.fn(() =>
+      Promise.resolve(updatedRow ? [updatedRow] : []),
+    );
+    return chain;
+  });
+
+  // The route calls .catch() on the return value, so the mock must return a Promise
+  vi.mocked(notifySellerOfListingStatusChange).mockResolvedValue(undefined);
+}
+
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/listings/:id — status update
+// ---------------------------------------------------------------------------
+
+describe("PATCH /api/admin/listings/:id — status update", () => {
+  it("returns 200 and the updated row when a valid status is provided", async () => {
+    const updated: Row = { id: "p-1", status: "published", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "pending", updatedRow: updated });
+
+    const app = buildApp();
+    const res = await request(app)
+      .patch("/api/admin/listings/p-1")
+      .send({ status: "published" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe("p-1");
+    expect(res.body.status).toBe("published");
+  });
+
+  it("returns 400 when an invalid status value is provided", async () => {
+    setupPatchDbMock({ existingStatus: "pending" });
+
+    const app = buildApp();
+    const res = await request(app)
+      .patch("/api/admin/listings/p-1")
+      .send({ status: "bogus" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when the request body has no status field", async () => {
+    setupPatchDbMock({ existingStatus: "pending" });
+
+    const app = buildApp();
+    const res = await request(app)
+      .patch("/api/admin/listings/p-1")
+      .send({});
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when the listing ID does not exist", async () => {
+    setupPatchDbMock({ existingStatus: null });
+
+    const app = buildApp();
+    const res = await request(app)
+      .patch("/api/admin/listings/nonexistent-id")
+      .send({ status: "published" });
+
+    expect(res.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/listings/:id — invalidateCountsCache behaviour
+// ---------------------------------------------------------------------------
+
+describe("PATCH /api/admin/listings/:id — invalidateCountsCache", () => {
+  it("calls invalidateCountsCache when transitioning TO published", async () => {
+    const updated: Row = { id: "p-1", status: "published", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "pending", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/p-1").send({ status: "published" });
+
+    expect(invalidateCountsCache).toHaveBeenCalledOnce();
+  });
+
+  it("calls invalidateCountsCache when transitioning FROM published to another status", async () => {
+    const updated: Row = { id: "pub-1", status: "archived", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "published", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/pub-1").send({ status: "archived" });
+
+    expect(invalidateCountsCache).toHaveBeenCalledOnce();
+  });
+
+  it("does not call invalidateCountsCache when transitioning between two non-published statuses", async () => {
+    const updated: Row = { id: "p-1", status: "archived", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "pending", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/p-1").send({ status: "archived" });
+
+    expect(invalidateCountsCache).not.toHaveBeenCalled();
+  });
+
+  it("calls invalidateCountsCache when the target status is published, even if it was already published", async () => {
+    const updated: Row = { id: "pub-1", status: "published", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "published", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/pub-1").send({ status: "published" });
+
+    expect(invalidateCountsCache).toHaveBeenCalledOnce();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /api/admin/listings/:id — notifySellerOfListingStatusChange behaviour
+// ---------------------------------------------------------------------------
+
+describe("PATCH /api/admin/listings/:id — notifySellerOfListingStatusChange", () => {
+  it("calls notifySellerOfListingStatusChange when transitioning to published", async () => {
+    const updated: Row = { id: "p-1", status: "published", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "pending", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/p-1").send({ status: "published" });
+
+    expect(notifySellerOfListingStatusChange).toHaveBeenCalledOnce();
+    expect(notifySellerOfListingStatusChange).toHaveBeenCalledWith("u-1", "Χώρος Α", "published");
+  });
+
+  it("calls notifySellerOfListingStatusChange when transitioning to archived", async () => {
+    const updated: Row = { id: "p-1", status: "archived", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "pending", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/p-1").send({ status: "archived" });
+
+    expect(notifySellerOfListingStatusChange).toHaveBeenCalledOnce();
+    expect(notifySellerOfListingStatusChange).toHaveBeenCalledWith("u-1", "Χώρος Α", "archived");
+  });
+
+  it("does not call notifySellerOfListingStatusChange when transitioning to draft", async () => {
+    const updated: Row = { id: "p-1", status: "draft", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "pending", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/p-1").send({ status: "draft" });
+
+    expect(notifySellerOfListingStatusChange).not.toHaveBeenCalled();
+  });
+
+  it("does not call notifySellerOfListingStatusChange when the status does not change", async () => {
+    const updated: Row = { id: "pub-1", status: "published", title: "Χώρος Α", user_id: "u-1", category: "spaces" };
+    setupPatchDbMock({ existingStatus: "published", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/pub-1").send({ status: "published" });
+
+    expect(notifySellerOfListingStatusChange).not.toHaveBeenCalled();
+  });
+
+  it("does not call notifySellerOfListingStatusChange when the listing has no user_id", async () => {
+    const updated: Row = { id: "p-1", status: "published", title: "Χώρος Α", user_id: null, category: "spaces" };
+    setupPatchDbMock({ existingStatus: "pending", updatedRow: updated });
+
+    const app = buildApp();
+    await request(app).patch("/api/admin/listings/p-1").send({ status: "published" });
+
+    expect(notifySellerOfListingStatusChange).not.toHaveBeenCalled();
   });
 });
