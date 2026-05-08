@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck, ShieldOff, CheckCircle2, XCircle, Eye, EyeOff, ArrowLeft, Loader2, FileSearch, Search, ChevronLeft, ChevronRight, Clock, UserRound, Mail, Phone, Stethoscope } from "lucide-react";
+import { ShieldCheck, ShieldOff, CheckCircle2, XCircle, Eye, EyeOff, ArrowLeft, Loader2, FileSearch, Search, ChevronLeft, ChevronRight, Clock, UserRound, Mail, Phone, Stethoscope, Package } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -225,6 +225,19 @@ const AdminDashboard = () => {
   const [claims, setClaims] = useState<ClinicClaim[]>([]);
   const [claimsLoading, setClaimsLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  type PendingListing = {
+    id: string;
+    title: string;
+    category: string;
+    city: string | null;
+    contact_email: string | null;
+    status: string;
+    created_at: Date | string;
+  };
+  const [pendingListings, setPendingListings] = useState<PendingListing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsBusyId, setListingsBusyId] = useState<string | null>(null);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorProfile | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<ClinicClaim | null>(null);
   const [lowCompletenessOnly, setLowCompletenessOnly] = useState(false);
@@ -398,6 +411,60 @@ const AdminDashboard = () => {
     setClaimsLoading(false);
   }, [session]);
 
+  const loadPendingListings = useCallback(async () => {
+    setListingsLoading(true);
+    try {
+      const token = await session?.getToken();
+      const res = await fetch(`${BASE}/api/admin/listings?status=pending`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setPendingListings(await res.json());
+    } catch (err: unknown) {
+      toast({
+        title: "Σφάλμα φόρτωσης αγγελιών",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
+      setPendingListings([]);
+    } finally {
+      setListingsLoading(false);
+    }
+  }, [session]);
+
+  const updateListingStatus = async (id: string, status: "published" | "archived") => {
+    if (listingsBusyId) return;
+    setListingsBusyId(id);
+    try {
+      const token = await session?.getToken();
+      const res = await fetch(`${BASE}/api/admin/listings/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || `HTTP ${res.status}`);
+      }
+      setPendingListings((prev) => prev.filter((l) => l.id !== id));
+      toast({
+        title: status === "published" ? "Αγγελία εγκρίθηκε" : "Αγγελία απορρίφθηκε",
+        description: status === "published" ? "Η αγγελία είναι πλέον ορατή στην αγορά." : "Η αγγελία αρχειοθετήθηκε.",
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Σφάλμα ενημέρωσης αγγελίας",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setListingsBusyId(null);
+    }
+  };
+
   const loadAuditLog = useCallback(async () => {
     setAuditLoading(true);
     try {
@@ -425,6 +492,10 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (isAdmin) loadClaims();
   }, [isAdmin, loadClaims]);
+
+  useEffect(() => {
+    if (isAdmin) loadPendingListings();
+  }, [isAdmin, loadPendingListings]);
 
   useEffect(() => {
     if (isAdmin) loadAuditLog();
@@ -803,16 +874,26 @@ const AdminDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-4">
           <StatCard label="Εκκρεμή προφίλ" value={pendingTotal} />
           <StatCard label="Πιστοποιημένα" value={verifiedTotal} />
           <StatCard label="Εκκρεμείς διεκδικήσεις" value={pendingClaims.length} />
+          <StatCard label="Εκκρεμείς αγγελίες" value={pendingListings.length} />
         </div>
 
         <Tabs defaultValue="doctors" className="w-full">
           <TabsList>
             <TabsTrigger value="doctors">Ιατρικά προφίλ</TabsTrigger>
             <TabsTrigger value="claims">Διεκδικήσεις κλινικών</TabsTrigger>
+            <TabsTrigger value="listings">
+              <Package className="h-4 w-4 mr-1.5" />
+              Αγγελίες
+              {pendingListings.length > 0 && (
+                <span className="ml-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 leading-none">
+                  {pendingListings.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="audit">Audit log</TabsTrigger>
           </TabsList>
 
@@ -957,6 +1038,125 @@ const AdminDashboard = () => {
                 showActions={false}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="listings" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Εκκρεμείς αγγελίες πωλητών</CardTitle>
+                  <CardDescription>
+                    Αγγελίες που υποβλήθηκαν από πωλητές και αναμένουν έγκριση πριν εμφανιστούν στην αγορά.
+                  </CardDescription>
+                </div>
+                <Button size="sm" variant="outline" onClick={loadPendingListings} disabled={listingsLoading}>
+                  {listingsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ανανέωση"}
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                {listingsLoading && pendingListings.length === 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Τίτλος</TableHead>
+                        <TableHead>Κατηγορία</TableHead>
+                        <TableHead>Πόλη</TableHead>
+                        <TableHead>Email πωλητή</TableHead>
+                        <TableHead>Ημερομηνία</TableHead>
+                        <TableHead className="text-right">Ενέργειες</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <TableRow key={`lsk-${i}`}>
+                          <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                          <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                          <TableCell>
+                            <div className="flex justify-end gap-2">
+                              <Skeleton className="h-8 w-24" />
+                              <Skeleton className="h-8 w-24" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : pendingListings.length === 0 ? (
+                  <p className="p-6 text-sm text-muted-foreground">
+                    Δεν υπάρχουν εκκρεμείς αγγελίες προς αξιολόγηση.
+                  </p>
+                ) : (
+                  <div className={cn("relative transition-opacity duration-200", listingsLoading && "opacity-60 pointer-events-none")} aria-busy={listingsLoading}>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Τίτλος</TableHead>
+                          <TableHead>Κατηγορία</TableHead>
+                          <TableHead>Πόλη</TableHead>
+                          <TableHead>Email πωλητή</TableHead>
+                          <TableHead>Ημερομηνία</TableHead>
+                          <TableHead className="text-right">Ενέργειες</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingListings.map((listing) => (
+                          <TableRow key={listing.id}>
+                            <TableCell className="font-medium max-w-[220px] truncate" title={listing.title}>
+                              {listing.title}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="capitalize">
+                                {listing.category}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {listing.city ?? <span className="text-muted-foreground/50">—</span>}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {listing.contact_email ?? <span className="text-muted-foreground/50">—</span>}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                              {new Date(listing.created_at).toLocaleDateString("el-GR")}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  disabled={listingsBusyId === listing.id}
+                                  onClick={() => updateListingStatus(listing.id, "published")}
+                                >
+                                  {listingsBusyId === listing.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <><CheckCircle2 className="h-4 w-4 mr-1" /> Έγκριση</>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={listingsBusyId === listing.id}
+                                  onClick={() => updateListingStatus(listing.id, "archived")}
+                                >
+                                  {listingsBusyId === listing.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <><XCircle className="h-4 w-4 mr-1" /> Απόρριψη</>
+                                  )}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="audit" className="space-y-6">

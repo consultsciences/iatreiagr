@@ -144,6 +144,17 @@ router.post("/admin/audit-log", requireAdmin, async (req, res) => {
   res.status(201).end();
 });
 
+// GET /api/admin/listings — list listings by status (default: pending)
+router.get("/admin/listings", requireAdmin, async (req, res) => {
+  const { status = "pending" } = req.query as Record<string, string>;
+  const rows = await db
+    .select()
+    .from(listingsTable)
+    .where(eq(listingsTable.status, status))
+    .orderBy(desc(listingsTable.created_at));
+  res.json(rows);
+});
+
 // PATCH /api/admin/listings/:id — update listing status; invalidates counts cache when publishing
 router.patch("/admin/listings/:id", requireAdmin, async (req, res) => {
   const parsed = AdminUpdateListingStatusBody.safeParse(req.body);
