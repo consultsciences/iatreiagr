@@ -32,6 +32,10 @@ args = "lint"
 task = "workflow.run"
 args = "test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "API Tests: Watch"
+
 [[workflows.workflow]]
 name = "typecheck"
 author = "agent"
@@ -75,6 +79,17 @@ args = "cd artifacts/iatreia && pnpm run test"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "API Tests: Watch"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server test:watch"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "PNPM_WORKSPACE"
