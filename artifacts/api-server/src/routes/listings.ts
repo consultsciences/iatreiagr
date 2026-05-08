@@ -2,7 +2,7 @@ import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { listingsTable, listingCountsCacheTable } from "@workspace/db";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, or, desc, count, ilike } from "drizzle-orm";
 import { CreateListingBody, UpdateListingBody } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
 
@@ -206,12 +206,23 @@ router.get("/listings/mine", async (req, res) => {
 });
 
 router.get("/listings", async (req, res) => {
-  const { category, featured, limit = "50" } = req.query as Record<string, string>;
+  const { category, featured, limit = "50", q, city } = req.query as Record<string, string>;
   const lim = Math.min(parseInt(limit) || 50, 200);
 
   const conditions = [eq(listingsTable.status, "published")];
   if (category) conditions.push(eq(listingsTable.category, category));
   if (featured === "true") conditions.push(eq(listingsTable.featured, true));
+  if (city) conditions.push(ilike(listingsTable.city, `%${city}%`));
+  if (q) {
+    const pattern = `%${q}%`;
+    conditions.push(
+      or(
+        ilike(listingsTable.title, pattern),
+        ilike(listingsTable.meta, pattern),
+        ilike(listingsTable.description, pattern),
+      )!,
+    );
+  }
 
   const rows = await db
     .select()

@@ -37,6 +37,17 @@ export async function fetchListingsByCategory(category: DbListing["category"]) {
   return res.json() as Promise<DbListing[]>;
 }
 
+export async function fetchListingsByQuery(params: { q?: string; city?: string; category?: string; limit?: number }) {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.city) qs.set("city", params.city);
+  if (params.category) qs.set("category", params.category);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const res = await fetch(`${BASE}/api/listings?${qs.toString()}`);
+  if (!res.ok) throw new Error(`Failed to fetch listings: ${res.status}`);
+  return res.json() as Promise<DbListing[]>;
+}
+
 export async function fetchFeaturedListings(limit = 6) {
   const res = await fetch(`${BASE}/api/listings?featured=true&limit=${limit}`);
   if (!res.ok) throw new Error(`Failed to fetch featured listings: ${res.status}`);

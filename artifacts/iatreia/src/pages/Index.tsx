@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentType } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search, MapPin, Building2, Stethoscope, Briefcase, Package, HandCoins,
   ShieldCheck, ArrowRight, CheckCircle2, Sparkles, TrendingUp, Plus, Quote,
@@ -70,11 +70,22 @@ function formatCount(n: number, suffix: string): string {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [heroQ, setHeroQ] = useState("");
+  const [heroCity, setHeroCity] = useState("");
   const [featured, setFeatured] = useState<DbListing[]>([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [featuredError, setFeaturedError] = useState(false);
   const [counts, setCounts] = useState<ListingCounts | null>(null);
   const [countsLoaded, setCountsLoaded] = useState(false);
+
+  function handleHeroSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (heroQ.trim()) params.set("q", heroQ.trim());
+    if (heroCity.trim()) params.set("city", heroCity.trim());
+    navigate(`/search?${params.toString()}`);
+  }
 
   useEffect(() => {
     setFeaturedLoading(true);
@@ -115,31 +126,54 @@ const Index = () => {
               προμηθευτές, χρηματοδοτήσεις και υπηρεσίες υποστήριξης για επαγγελματίες υγείας στην Ελλάδα.
             </p>
 
-            <Card className="mb-5 p-2 shadow-[var(--shadow-elevated)]">
-              <div className="flex flex-col gap-2 md:flex-row">
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Τι ψάχνετε; (π.χ. οδοντιατρείο, υπερηχογράφος, νοσηλευτής)"
-                    className="h-12 border-0 pl-11 text-base focus-visible:ring-0"
-                  />
+            <form onSubmit={handleHeroSearch}>
+              <Card className="mb-5 p-2 shadow-[var(--shadow-elevated)]">
+                <div className="flex flex-col gap-2 md:flex-row">
+                  <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={heroQ}
+                      onChange={(e) => setHeroQ(e.target.value)}
+                      placeholder="Τι ψάχνετε; (π.χ. οδοντιατρείο, υπερηχογράφος, νοσηλευτής)"
+                      className="h-12 border-0 pl-11 text-base focus-visible:ring-0"
+                    />
+                  </div>
+                  <div className="hidden w-px bg-border md:block" />
+                  <div className="relative md:w-52">
+                    <MapPin className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={heroCity}
+                      onChange={(e) => setHeroCity(e.target.value)}
+                      placeholder="Πόλη"
+                      className="h-12 border-0 pl-11 text-base focus-visible:ring-0"
+                    />
+                  </div>
+                  <Button type="submit" size="lg" className="h-12 px-6 font-semibold">
+                    <Search className="mr-2 h-4 w-4" /> Αναζήτηση Αγγελιών
+                  </Button>
                 </div>
-                <div className="hidden w-px bg-border md:block" />
-                <div className="relative md:w-52">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                  <Input placeholder="Πόλη" className="h-12 border-0 pl-11 text-base focus-visible:ring-0" />
-                </div>
-                <Button size="lg" className="h-12 px-6 font-semibold">
-                  <Search className="mr-2 h-4 w-4" /> Αναζήτηση Αγγελιών
-                </Button>
-              </div>
-            </Card>
+              </Card>
+            </form>
 
             <div className="mb-7 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span className="font-medium">Δημοφιλή:</span>
-              {["Ιατρείο Αθήνα", "Οδοντιατρικός εξοπλισμός", "Leasing μηχανημάτων", "Θέσεις καρδιολόγου"].map((t) => (
-                <button key={t} className="rounded-full border bg-background px-3 py-1 text-xs hover:border-primary hover:text-primary">
-                  {t}
+              {[
+                { label: "Ιατρείο Αθήνα", q: "Ιατρείο", city: "Αθήνα" },
+                { label: "Οδοντιατρικός εξοπλισμός", q: "Οδοντιατρικός", city: "" },
+                { label: "Leasing μηχανημάτων", q: "leasing", city: "" },
+                { label: "Θέσεις καρδιολόγου", q: "καρδιολόγος", city: "" },
+              ].map((t) => (
+                <button
+                  key={t.label}
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    if (t.q) params.set("q", t.q);
+                    if (t.city) params.set("city", t.city);
+                    navigate(`/search?${params.toString()}`);
+                  }}
+                  className="rounded-full border bg-background px-3 py-1 text-xs hover:border-primary hover:text-primary"
+                >
+                  {t.label}
                 </button>
               ))}
             </div>
