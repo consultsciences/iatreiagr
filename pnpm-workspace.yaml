@@ -160,3 +160,5 @@ overrides:
   esbuild: "0.27.3"
   # Security: fix GHSA-2w69-qvjg-hvjx (@remix-run/router vulnerability)
   "@remix-run/router": "1.23.2"
+  # Security: fix GHSA-q3j6-qgpj-74h6 and GHSA-v39h-62p7-jpjc (fast-uri vulnerabilities)
+  "fast-uri": "^3.1.2"
