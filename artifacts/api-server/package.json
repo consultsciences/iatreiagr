@@ -8,7 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "lint": "eslint src",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p ../../lib/types/tsconfig.json && tsc -p ../../lib/api-zod/tsconfig.json && tsc -p ../../lib/db/tsconfig.json && tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts"
   },
