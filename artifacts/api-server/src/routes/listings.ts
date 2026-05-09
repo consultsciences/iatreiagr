@@ -2,7 +2,7 @@ import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { listingsTable, listingCountsCacheTable } from "@workspace/db";
-import { eq, and, or, desc, count, ilike, ne } from "drizzle-orm";
+import { eq, and, or, desc, count, ilike } from "drizzle-orm";
 import { CreateListingBody, UpdateListingBody } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { getUserPlan, countActiveListings, PLAN_LIMITS } from "./subscriptions";
