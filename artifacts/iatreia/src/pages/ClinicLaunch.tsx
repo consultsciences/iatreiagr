@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, Star } from "lucide-react";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { Card } from "@/components/ui/card";
@@ -61,7 +61,26 @@ const ClinicLaunch = () => (
       </div>
     </section>
 
-    <section className="py-14">
+    <section className="py-8">
+      <div className="container mx-auto max-w-4xl px-4">
+        <Card className="flex flex-col items-center gap-4 border-primary/20 bg-primary/5 p-6 text-center sm:flex-row sm:text-left">
+          <Star className="h-10 w-10 shrink-0 text-primary" />
+          <div className="flex-1">
+            <p className="font-bold text-foreground">Προσφέρετε υπηρεσίες ανοίγματος ιατρείου;</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Αποκτήστε αφιερωμένη σελίδα με πλήρη πρόταση, logo, website link & φόρμα επικοινωνίας απευθείας από γιατρούς. Εφάπαξ €1.499.
+            </p>
+          </div>
+          <Button asChild className="shrink-0">
+            <Link to="/advertise?type=clinic-launch">
+              Καταχωρίστε τώρα <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </Card>
+      </div>
+    </section>
+
+    <section className="pb-14 pt-6">
       <div className="container mx-auto grid gap-5 px-4 md:grid-cols-2 lg:grid-cols-3">
         {packages.map((p) => (
           <Card key={p.slug} className="flex flex-col p-6 transition-shadow hover:shadow-[var(--shadow-elevated)]">

@@ -1,6 +1,6 @@
 import type Stripe from 'stripe';
 import { getStripeSync, constructWebhookEvent, getUncachableStripeClient } from './stripeClient';
-import { db, userSubscriptionsTable } from '@workspace/db';
+import { db, userSubscriptionsTable, listingsTable } from '@workspace/db';
 import { eq } from 'drizzle-orm';
 
 const VALID_PLANS = new Set(['free', 'starter', 'professional', 'premium', 'enterprise']);
@@ -52,6 +52,14 @@ async function getPlanFromSubscription(
   return (price?.product as Stripe.Product)?.metadata?.plan ?? 'free';
 }
 
+async function publishPlacementListing(listingId: string): Promise<void> {
+  await db
+    .update(listingsTable)
+    .set({ status: 'published', payment_status: 'paid', featured: true })
+    .where(eq(listingsTable.id, listingId));
+  console.log(`[webhook] Placement listing published: ${listingId}`);
+}
+
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string): Promise<void> {
     if (!Buffer.isBuffer(payload)) {
@@ -85,8 +93,23 @@ export class WebhookHandlers {
         const session = event.data.object as Stripe.Checkout.Session;
         const clerkUserId = session.client_reference_id;
         const customerId = session.customer as string;
-        const subscriptionId = session.subscription as string;
 
+        // One-time placement payment
+        if (session.mode === 'payment' && clerkUserId?.startsWith('placement_')) {
+          const listingId = clerkUserId.replace('placement_', '');
+          await publishPlacementListing(listingId);
+          return;
+        }
+
+        // Also check metadata for listing_id (belt-and-suspenders)
+        const listingIdFromMeta = (session.metadata as Record<string, string> | null)?.listing_id;
+        if (session.mode === 'payment' && listingIdFromMeta) {
+          await publishPlacementListing(listingIdFromMeta);
+          return;
+        }
+
+        // Subscription checkout
+        const subscriptionId = session.subscription as string;
         if (!clerkUserId || !subscriptionId) return;
 
         const plan = await getPlanFromSubscription(stripe, subscriptionId);

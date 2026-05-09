@@ -2,6 +2,7 @@ import * as zod from "zod";
 
 const LISTING_CATEGORIES = ["spaces", "equipment", "jobs", "supplies", "services"] as const;
 const LISTING_STATUSES = ["published", "draft", "archived"] as const;
+const PLACEMENT_TYPES = ["services", "clinic-launch"] as const;
 
 export const CreateListingBody = zod.object({
   category: zod.enum(LISTING_CATEGORIES),
@@ -66,3 +67,29 @@ export const AdminUpdateListingStatusBody = zod.object({
     errorMap: () => ({ message: `status must be one of: ${LISTING_STATUSES.join(", ")}` }),
   }),
 });
+
+export const PlacementOrderBody = zod.object({
+  placement_type: zod.enum(PLACEMENT_TYPES),
+  title: zod.string().min(3, "Ο τίτλος πρέπει να έχει τουλάχιστον 3 χαρακτήρες").max(200),
+  description: zod.string().max(10_000).nullish(),
+  proposal: zod.string().max(10_000).nullish(),
+  city: zod.string().max(100).nullish(),
+  region: zod.string().max(100).nullish(),
+  website_url: zod
+    .string()
+    .regex(/^https?:\/\/.+/, "website_url must be a valid http/https URL")
+    .nullish(),
+  logo_url: zod
+    .string()
+    .regex(/^https?:\/\/.+/, "logo_url must be a valid http/https URL")
+    .nullish(),
+  image_url: zod
+    .string()
+    .regex(/^https?:\/\/.+/, "image_url must be a valid http/https URL")
+    .nullish(),
+  contact_name: zod.string().max(200).nullish(),
+  contact_email: zod.string().email("Μη έγκυρο email").max(255).nullish(),
+  contact_phone: zod.string().max(40).nullish(),
+});
+
+export type PlacementOrderBodyInput = zod.input<typeof PlacementOrderBody>;

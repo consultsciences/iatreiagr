@@ -1,4 +1,8 @@
+import { Link } from "react-router-dom";
+import { ArrowRight, Star } from "lucide-react";
 import { ListingCategoryPage } from "./ListingCategoryPage";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const DISCLAIMERS = {
   spaces: "Το iatreia.gr φιλοξενεί αγγελίες ακινήτων και δεν παρέχει μεσιτικές, νομικές ή τεχνικές υπηρεσίες. Ο ενδιαφερόμενος οφείλει να ελέγξει απευθείας με τον ιδιοκτήτη, μεσίτη ή σύμβουλο την καταλληλότητα, τη χρήση, τις άδειες και τους όρους μίσθωσης ή αγοράς.",
@@ -7,6 +11,23 @@ const DISCLAIMERS = {
   supplies: "Το iatreia.gr παρουσιάζει προμηθευτές και δεν πραγματοποιεί πωλήσεις. Όλες οι παραγγελίες, οι όροι και οι πληρωμές γίνονται απευθείας με τον προμηθευτή.",
   services: "Το iatreia.gr παρουσιάζει παρόχους υπηρεσιών χωρίς να εγγυάται ή να μεσολαβεί. Συμβουλευτείτε απευθείας τον πάροχο για όρους, χρόνους και τιμές.",
 };
+
+const ServicesCTA = () => (
+  <Card className="mb-6 flex flex-col items-center gap-4 border-primary/20 bg-primary/5 p-6 text-center sm:flex-row sm:text-left">
+    <Star className="h-10 w-10 shrink-0 text-primary" />
+    <div className="flex-1">
+      <p className="font-bold text-foreground">Είστε πάροχος υπηρεσιών;</p>
+      <p className="mt-0.5 text-sm text-muted-foreground">
+        Αποκτήστε αφιερωμένη σελίδα με περιγραφή, πρόταση συνεργασίας & φόρμα επικοινωνίας. Εφάπαξ €1.499.
+      </p>
+    </div>
+    <Button asChild className="shrink-0">
+      <Link to="/advertise?type=services">
+        Καταχωρίστε τώρα <ArrowRight className="ml-2 h-4 w-4" />
+      </Link>
+    </Button>
+  </Card>
+);
 
 export const SpacesPage = () => (
   <ListingCategoryPage
@@ -50,5 +71,6 @@ export const ServicesPage = () => (
     title="Υπηρεσίες & Συνεργάτες"
     subtitle="Τράπεζες, leasing, αδειοδότηση, κατασκευή, νομικοί, λογιστές και άλλοι B2B συνεργάτες."
     disclaimer={DISCLAIMERS.services}
+    headerSlot={<ServicesCTA />}
   />
 );

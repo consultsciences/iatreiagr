@@ -6,6 +6,7 @@ export type DbListing = {
   category: "spaces" | "equipment" | "jobs" | "supplies" | "services";
   title: string;
   description: string | null;
+  proposal: string | null;
   city: string | null;
   region: string | null;
   price: number | null;
@@ -14,11 +15,15 @@ export type DbListing = {
   badge: string | null;
   meta: string | null;
   image_url: string | null;
+  logo_url: string | null;
+  website_url: string | null;
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
   featured: boolean;
   status: string;
+  payment_status: string;
+  payment_session_id: string | null;
   user_id: string | null;
   created_at: string;
 };

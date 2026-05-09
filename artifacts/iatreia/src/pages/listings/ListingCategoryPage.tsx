@@ -14,9 +14,10 @@ interface Props {
   title: string;
   subtitle: string;
   disclaimer: string;
+  headerSlot?: React.ReactNode;
 }
 
-export const ListingCategoryPage = ({ category, title, subtitle, disclaimer }: Props) => {
+export const ListingCategoryPage = ({ category, title, subtitle, disclaimer, headerSlot }: Props) => {
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
   const [items, setItems] = useState<DbListing[]>([]);
@@ -92,6 +93,7 @@ export const ListingCategoryPage = ({ category, title, subtitle, disclaimer }: P
 
       <section className="py-10">
         <div className="container mx-auto px-4">
+          {headerSlot}
           <div className="mb-5 text-sm text-muted-foreground">
             {loading ? "Φόρτωση…" : `${filtered.length} ${filtered.length === 1 ? "αγγελία" : "αγγελίες"}`}
           </div>

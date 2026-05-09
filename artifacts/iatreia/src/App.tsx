@@ -31,6 +31,7 @@ import ClinicsAdmin from "./pages/ClinicsAdmin.tsx";
 import MedicalTourism from "./pages/MedicalTourism.tsx";
 import Post from "./pages/Post.tsx";
 import MyListings from "./pages/MyListings.tsx";
+import PlacementOrder from "./pages/PlacementOrder.tsx";
 import Terms from "./pages/Terms.tsx";
 import Privacy from "./pages/Privacy.tsx";
 import ListingsPolicy from "./pages/ListingsPolicy.tsx";
@@ -105,6 +106,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/post" element={<Post />} />
               <Route path="/my-listings" element={<MyListings />} />
+              <Route path="/advertise" element={<PlacementOrder />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/doctors/auth" element={<DoctorAuth />} />
               <Route path="/doctors/dashboard" element={<DoctorDashboard />} />
