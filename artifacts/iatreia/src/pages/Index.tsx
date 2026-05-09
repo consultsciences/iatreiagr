@@ -37,19 +37,12 @@ const categories: {
 
 const cities = ["Αθήνα", "Θεσσαλονίκη", "Πάτρα", "Ηράκλειο", "Λάρισα", "Βόλος", "Ιωάννινα", "Χανιά"];
 
-const TRUST_STATS_STATIC = [
-  { v: "8.500+", l: "Επαγγελματίες υγείας" },
-  { v: "1.200+", l: "Ενεργές αγγελίες" },
-  { v: "300+", l: "Επαληθευμένοι συνεργάτες" },
-  { v: "48 ώρες", l: "Μέσος χρόνος ανταπόκρισης" },
-];
 
 const launchTypes = [
   "Οδοντιατρείο", "Διαγνωστικό κέντρο", "Δερματολογικό", "Παθολογικό",
   "Μικροβιολογικό εργαστήριο", "Φυσικοθεραπευτήριο", "Αισθητική ιατρική",
 ];
 
-const partners = ["ΕΘΝΙΚΗ", "ALPHA LEASING", "PIRAEUS", "EUROBANK", "INTERAMERICAN", "AXA", "GENERALI", "ALLIANZ"];
 
 const testimonials = [
   { name: "Δρ. Γεώργιος Π.", role: "Καρδιολόγος, Αθήνα", text: "Βρήκα το ιδανικό ιατρείο σε 10 ημέρες. Το iatreia.gr απλοποίησε όλη τη διαδικασία." },
@@ -100,12 +93,6 @@ const Index = () => {
       .catch(() => {});
   }, []);
 
-  const trustStats = TRUST_STATS_STATIC.map((s) => {
-    if (s.l === "Ενεργές αγγελίες" && countsLoaded && counts?.total != null) {
-      return { v: counts.total.toLocaleString("el-GR"), l: s.l };
-    }
-    return s;
-  });
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -208,17 +195,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Trust strip */}
-      <section className="border-b bg-background py-8">
-        <div className="container mx-auto grid grid-cols-2 gap-6 px-4 md:grid-cols-4">
-          {trustStats.map((s) => (
-            <div key={s.l} className="text-center">
-              <div className="text-2xl font-bold text-primary md:text-3xl">{s.v}</div>
-              <div className="text-xs text-muted-foreground md:text-sm">{s.l}</div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* Categories */}
       <section className="py-16 lg:py-20">
@@ -354,15 +330,18 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Partners */}
+      {/* Partners CTA */}
       <section className="border-y bg-secondary/30 py-12">
-        <div className="container mx-auto px-4">
-          <p className="mb-6 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Συνεργαζόμαστε με κορυφαίους θεσμικούς εταίρους
+        <div className="container mx-auto px-4 text-center">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            ΒΡΕΙΤΕ ΠΡΟΣΦΟΡΕΣ ΥΠΗΡΕΣΙΩΝ ΑΠΟ ΘΕΣΜΙΚΟΥΣ ΕΤΑΙΡΟΥΣ
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-70">
-            {partners.map((p) => (
-              <span key={p} className="text-sm font-bold tracking-wider text-muted-foreground">{p}</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {["ΤΡΑΠΕΖΕΣ", "LEASING", "ΑΣΦΑΛΕΙΕΣ ΕΠΑΓΓΕΛΜΑΤΙΩΝ ΥΓΕΙΑΣ", "ΤΕΧΝΙΚΕΣ ΥΠΗΡΕΣΙΕΣ", "ΛΟΓΙΣΜΙΚΟ", "ΑΔΕΙΕΣ ΕΝΑΡΞΗΣ"].map((cat, i, arr) => (
+              <span key={cat} className="flex items-center gap-x-6">
+                <Link to="/services" className="text-sm font-bold tracking-wider text-muted-foreground transition-colors hover:text-primary">{cat}</Link>
+                {i < arr.length - 1 && <span className="text-muted-foreground/40">|</span>}
+              </span>
             ))}
           </div>
         </div>
