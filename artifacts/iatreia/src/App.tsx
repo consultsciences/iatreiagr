@@ -7,7 +7,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CookieConsent } from "@/components/CookieConsent";
 import Index from "./pages/Index.tsx";
-import IndexEn from "./pages/IndexEn.tsx";
 import Pricing from "./pages/Pricing.tsx";
 import About from "./pages/About.tsx";
 import Contact from "./pages/Contact.tsx";
@@ -84,7 +83,6 @@ const App = () => (
             <CookieConsent />
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/en" element={<IndexEn />} />
               <Route path="/search" element={<Search />} />
               <Route path="/spaces" element={<SpacesPage />} />
               <Route path="/equipment" element={<EquipmentPage />} />

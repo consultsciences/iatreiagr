@@ -27,7 +27,6 @@ const cols = [
       { to: "/about", label: "Σχετικά" },
       { to: "/contact", label: "Επικοινωνία" },
       { to: "/articles", label: "Blog & Οδηγοί" },
-      { to: "/en", label: "English" },
     ],
   },
   {
