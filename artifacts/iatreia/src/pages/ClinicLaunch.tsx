@@ -68,7 +68,7 @@ const ClinicLaunch = () => (
           <div className="flex-1">
             <p className="font-bold text-foreground">Προσφέρετε υπηρεσίες ανοίγματος ιατρείου;</p>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Αποκτήστε αφιερωμένη σελίδα με πλήρη πρόταση, logo, website link & φόρμα επικοινωνίας απευθείας από γιατρούς. Εφάπαξ €1.499.
+              Αποκτήστε αφιερωμένη σελίδα με πλήρη πρόταση, logo, website link & φόρμα επικοινωνίας απευθείας από γιατρούς. Από €999.
             </p>
           </div>
           <Button asChild className="shrink-0">

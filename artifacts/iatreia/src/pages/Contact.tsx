@@ -22,7 +22,7 @@ const Contact = () => {
           <Badge variant="secondary" className="mb-4">Επικοινωνία</Badge>
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl">Πώς μπορούμε να βοηθήσουμε;</h1>
           <p className="mt-4 text-muted-foreground">
-            Στείλτε μας μήνυμα — απαντάμε εντός 1 εργάσιμης ημέρας.
+            Στείλτε μας μήνυμα και θα επικοινωνήσουμε μαζί σας.
           </p>
         </div>
       </section>

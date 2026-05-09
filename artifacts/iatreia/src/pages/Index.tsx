@@ -2,7 +2,7 @@ import { useEffect, useState, type ComponentType } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search, MapPin, Building2, Stethoscope, Briefcase, Package, HandCoins,
-  ShieldCheck, ArrowRight, CheckCircle2, Sparkles, TrendingUp, Plus, Quote,
+  ShieldCheck, ArrowRight, CheckCircle2, Sparkles, Plus, Quote,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,13 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { fetchFeaturedListings, fetchListingCounts, type DbListing, type ListingCounts } from "@/lib/listings";
 import heroImg from "@/assets/hero-clinic.jpg";
+
+const HERO_IMAGES = [
+  { src: heroImg, alt: "Σύγχρονο οδοντιατρείο" },
+  { src: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1600&q=80", alt: "Ιατρικό γραφείο" },
+  { src: "https://images.unsplash.com/photo-1551076805-e1869033e561?w=1600&q=80", alt: "Διαγνωστικό κέντρο" },
+  { src: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600&q=80", alt: "Κλινική" },
+];
 
 type CategoryKey = keyof Omit<ListingCounts, "total">;
 
@@ -71,6 +78,12 @@ const Index = () => {
   const [featuredError, setFeaturedError] = useState(false);
   const [counts, setCounts] = useState<ListingCounts | null>(null);
   const [countsLoaded, setCountsLoaded] = useState(false);
+  const [heroIdx, setHeroIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setHeroIdx((i) => (i + 1) % HERO_IMAGES.length), 5000);
+    return () => clearInterval(t);
+  }, []);
 
   function handleHeroSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -177,20 +190,25 @@ const Index = () => {
 
           <div className="relative hidden lg:block">
             <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 blur-2xl" />
-            <img
-              src={heroImg}
-              alt="Σύγχρονος ιατρικός χώρος προς ενοικίαση στην Ελλάδα"
-              width={1600}
-              height={1024}
-              className="relative rounded-2xl object-cover shadow-2xl"
-            />
-            <Card className="absolute -bottom-6 -left-6 hidden w-64 p-4 shadow-2xl xl:block">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-primary">
-                <TrendingUp className="h-4 w-4" /> ΤΑΣΗ
-              </div>
-              <div className="text-sm font-semibold">+38% νέες αγγελίες</div>
-              <div className="text-xs text-muted-foreground">τους τελευταίους 3 μήνες</div>
-            </Card>
+            {HERO_IMAGES.map((img, i) => (
+              <img
+                key={img.src}
+                src={img.src}
+                alt={img.alt}
+                width={1600}
+                height={1024}
+                className={`relative rounded-2xl object-cover shadow-2xl transition-opacity duration-1000 ${i === heroIdx ? "opacity-100" : "absolute inset-0 opacity-0"}`}
+              />
+            ))}
+            <div className="absolute bottom-4 right-4 flex gap-1.5">
+              {HERO_IMAGES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setHeroIdx(i)}
+                  className={`h-1.5 rounded-full transition-all ${i === heroIdx ? "w-5 bg-white" : "w-1.5 bg-white/50"}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>

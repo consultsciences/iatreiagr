@@ -54,7 +54,7 @@ const Ask = () => {
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-foreground">Ρώτα τους ειδικούς μας</h1>
           <p className="mt-3 text-muted-foreground">
-            Κάνε την ερώτησή σου ανώνυμα και πάρε αξιόπιστες απαντήσεις από πιστοποιημένους ιατρούς εντός 24 ωρών.
+            Κάνε την ερώτησή σου ανώνυμα και πάρε αξιόπιστες απαντήσεις από πιστοποιημένους ιατρούς.
           </p>
         </div>
       </section>

@@ -60,7 +60,7 @@ const Report = () => {
             <h1 className="mb-3 text-2xl font-bold">Αναφορά Υποβλήθηκε</h1>
             <p className="mb-6 text-muted-foreground">
               Σας ευχαριστούμε. Η ομάδα διαχείρισης της iatreia.gr θα εξετάσει την καταγγελία σας
-              και θα λάβει τα κατάλληλα μέτρα εντός 2 εργάσιμων ημερών.
+              και θα λάβει τα κατάλληλα μέτρα.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button asChild variant="outline">
@@ -174,14 +174,6 @@ const Report = () => {
               </ul>
             </div>
 
-            <div className="rounded-lg border bg-card p-5">
-              <h3 className="mb-2 font-semibold">Χρόνος Απόκρισης</h3>
-              <p className="text-muted-foreground">
-                Εξετάζουμε κάθε αναφορά εντός{" "}
-                <strong>2 εργάσιμων ημερών</strong>. Σοβαρές παραβιάσεις αντιμετωπίζονται
-                άμεσα.
-              </p>
-            </div>
 
             <div className="rounded-lg border bg-card p-5">
               <h3 className="mb-2 font-semibold">Άλλο πρόβλημα;</h3>

@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, CreditCard } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { type SubscriptionStatus, PLAN_COLORS } from "@/lib/subscriptions";
+
+const STRIPE_PORTAL_URL = "https://billing.stripe.com/p/login/3cIcMY3dvdmx2ibgdtcbC00";
 
 type Props = {
   status: SubscriptionStatus;
@@ -61,22 +63,31 @@ export const PlanStatus = ({ status }: Props) => {
             </div>
           </div>
 
-          {nextPlan && (
-            <Button
-              asChild
-              size="sm"
-              variant={isAtLimit ? "default" : "outline"}
-              className={isAtLimit ? "shrink-0" : "shrink-0"}
-            >
-              <Link to={NEXT_PLAN_ROUTE[plan] ?? "/pricing"}>
-                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                {isAtLimit
-                  ? `Αναβάθμιση σε ${nextPlan}`
-                  : `${remaining !== null ? `${remaining} εναπομείνασες θέσεις` : ""} · Αναβάθμιση`}
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          )}
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {!isEnterprise && (
+              <Button asChild size="sm" variant="ghost">
+                <a href={STRIPE_PORTAL_URL} target="_blank" rel="noopener noreferrer">
+                  <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                  Συνδρομές & Τιμολόγια
+                </a>
+              </Button>
+            )}
+            {nextPlan && (
+              <Button
+                asChild
+                size="sm"
+                variant={isAtLimit ? "default" : "outline"}
+              >
+                <Link to={NEXT_PLAN_ROUTE[plan] ?? "/pricing"}>
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  {isAtLimit
+                    ? `Αναβάθμιση σε ${nextPlan}`
+                    : `${remaining !== null ? `${remaining} εναπομείνασες θέσεις` : ""} · Αναβάθμιση`}
+                  <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

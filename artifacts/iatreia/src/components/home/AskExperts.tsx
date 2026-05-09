@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 const features = [
   { icon: Lock, title: "100% ανώνυμα", desc: "Κανένα όνομα, κανένα email στην ερώτησή σου." },
   { icon: ShieldCheck, title: "Πιστοποιημένοι ιατροί", desc: "Απαντούν μόνο επαληθευμένοι επαγγελματίες." },
-  { icon: Clock, title: "Απάντηση εντός 24h", desc: "Ειδοποίηση με email μόλις απαντήσει ειδικός." },
+  { icon: Clock, title: "Ειδοποίηση μέσω email", desc: "Λαμβάνεις ειδοποίηση μόλις απαντήσει ειδικός." },
 ];
 
 const AskExperts = () => (

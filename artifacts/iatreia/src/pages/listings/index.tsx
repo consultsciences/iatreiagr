@@ -18,7 +18,7 @@ const ServicesCTA = () => (
     <div className="flex-1">
       <p className="font-bold text-foreground">Είστε πάροχος υπηρεσιών;</p>
       <p className="mt-0.5 text-sm text-muted-foreground">
-        Αποκτήστε αφιερωμένη σελίδα με περιγραφή, πρόταση συνεργασίας & φόρμα επικοινωνίας. Εφάπαξ €1.499.
+        Αποκτήστε αφιερωμένη σελίδα με περιγραφή, πρόταση συνεργασίας & φόρμα επικοινωνίας. Από €999.
       </p>
     </div>
     <Button asChild className="shrink-0">
