@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck, ShieldOff, CheckCircle2, XCircle, Eye, EyeOff, ArrowLeft, Loader2, FileSearch, Search, ChevronLeft, ChevronRight, Clock, UserRound, Mail, Phone, Stethoscope, Package } from "lucide-react";
+import { ShieldCheck, ShieldOff, CheckCircle2, XCircle, Eye, EyeOff, ArrowLeft, Loader2, FileSearch, Search, ChevronLeft, ChevronRight, Clock, UserRound, Mail, Phone, Stethoscope, Package, Users, Crown, ShieldPlus } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -359,6 +359,25 @@ const AdminDashboard = () => {
     };
   }, [listingsSearchInput]);
 
+  type AdminUser = {
+    user_id: string;
+    plan: string;
+    stripe_customer_id: string | null;
+    stripe_subscription_id: string | null;
+    created_at: Date | string;
+    updated_at: Date | string;
+    activeListings: number;
+    is_admin: boolean;
+  };
+  const USER_PAGE_SIZE = 50;
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [adminUsersTotal, setAdminUsersTotal] = useState(0);
+  const [adminUsersPage, setAdminUsersPage] = useState(0);
+  const [adminUsersLoading, setAdminUsersLoading] = useState(true);
+  const [adminUsersBusyId, setAdminUsersBusyId] = useState<string | null>(null);
+  const [adminGrantInput, setAdminGrantInput] = useState("");
+  const [adminGrantBusy, setAdminGrantBusy] = useState(false);
+
   const auditDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (auditDebounceRef.current) clearTimeout(auditDebounceRef.current);
@@ -534,6 +553,88 @@ const AdminDashboard = () => {
     setAuditLoading(false);
   }, [session]);
 
+  const loadAdminUsers = useCallback(async (page: number) => {
+    setAdminUsersLoading(true);
+    try {
+      const token = await session?.getToken();
+      const params = new URLSearchParams({ limit: String(USER_PAGE_SIZE), offset: String(page * USER_PAGE_SIZE) });
+      const res = await fetch(`${BASE}/api/admin/users?${params}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { users, total } = await res.json();
+      setAdminUsers(users ?? []);
+      setAdminUsersTotal(total ?? 0);
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα φόρτωσης χρηστών", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+      setAdminUsers([]);
+    } finally {
+      setAdminUsersLoading(false);
+    }
+  }, [session]);
+
+  const changePlan = async (userId: string, plan: string) => {
+    setAdminUsersBusyId(userId);
+    try {
+      const token = await session?.getToken();
+      const res = await fetch(`${BASE}/api/subscriptions/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ plan }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setAdminUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, plan } : u)));
+      toast({ title: "Πλάνο ενημερώθηκε", description: `Νέο πλάνο: ${plan}` });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα αλλαγής πλάνου", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+    } finally {
+      setAdminUsersBusyId(null);
+    }
+  };
+
+  const grantAdmin = async () => {
+    const uid = adminGrantInput.trim();
+    if (!uid) return;
+    setAdminGrantBusy(true);
+    try {
+      const token = await session?.getToken();
+      const res = await fetch(`${BASE}/api/admin/roles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ user_id: uid }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast({ title: "Δικαίωμα admin εκχωρήθηκε", description: uid });
+      setAdminGrantInput("");
+      setAdminUsers((prev) => prev.map((u) => (u.user_id === uid ? { ...u, is_admin: true } : u)));
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα εκχώρησης admin", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+    } finally {
+      setAdminGrantBusy(false);
+    }
+  };
+
+  const revokeAdmin = async (userId: string) => {
+    setAdminUsersBusyId(userId);
+    try {
+      const token = await session?.getToken();
+      const res = await fetch(`${BASE}/api/admin/roles/${userId}`, {
+        method: "DELETE",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error ?? `HTTP ${res.status}`);
+      }
+      setAdminUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, is_admin: false } : u)));
+      toast({ title: "Δικαίωμα admin αφαιρέθηκε" });
+    } catch (err: unknown) {
+      toast({ title: "Σφάλμα αφαίρεσης admin", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+    } finally {
+      setAdminUsersBusyId(null);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) loadDoctors(true, verifiedPage);
   }, [isAdmin, verifiedPage, loadDoctors]);
@@ -553,6 +654,10 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (isAdmin) loadAuditLog();
   }, [isAdmin, loadAuditLog]);
+
+  useEffect(() => {
+    if (isAdmin) loadAdminUsers(adminUsersPage);
+  }, [isAdmin, adminUsersPage, loadAdminUsers]);
 
   const updateDoctor = async (id: string, patch: Partial<DoctorProfile>) => {
     const target =
@@ -950,6 +1055,10 @@ const AdminDashboard = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="audit">Audit log</TabsTrigger>
+            <TabsTrigger value="users">
+              <Users className="h-4 w-4 mr-1.5" />
+              Χρήστες
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="doctors" className="space-y-6">
@@ -1561,6 +1670,193 @@ const AdminDashboard = () => {
                       })}
                     </TableBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ── Users tab ── */}
+          <TabsContent value="users" className="space-y-6">
+            {/* Grant / revoke admin */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShieldPlus className="h-4 w-4" />
+                  Διαχείριση δικαιωμάτων admin
+                </CardTitle>
+                <CardDescription>
+                  Εκχωρήστε ή αφαιρέστε το ρόλο admin σε άλλον χρήστη χρησιμοποιώντας το Clerk User ID του.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 max-w-lg">
+                  <Input
+                    placeholder="user_2abc… (Clerk User ID)"
+                    value={adminGrantInput}
+                    onChange={(e) => setAdminGrantInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && grantAdmin()}
+                  />
+                  <Button onClick={grantAdmin} disabled={adminGrantBusy || !adminGrantInput.trim()}>
+                    {adminGrantBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldPlus className="h-4 w-4 mr-1" />}
+                    Εκχώρηση admin
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Users with subscriptions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Χρήστες &amp; συνδρομές
+                </CardTitle>
+                <CardDescription>
+                  Χρήστες που έχουν πλάνο στη βάση · σύνολο: {adminUsersTotal}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {adminUsersLoading && adminUsers.length === 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User ID</TableHead>
+                        <TableHead>Πλάνο</TableHead>
+                        <TableHead>Αγγελίες</TableHead>
+                        <TableHead>Εγγραφή</TableHead>
+                        <TableHead>Ρόλος</TableHead>
+                        <TableHead className="text-right">Ενέργειες</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={`usk-${i}`}>
+                          <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                          <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                          <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                          <TableCell><div className="flex justify-end gap-2"><Skeleton className="h-8 w-28" /><Skeleton className="h-8 w-24" /></div></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : adminUsers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Δεν υπάρχουν χρήστες με συνδρομή.</p>
+                ) : (
+                  <div className={cn("relative transition-opacity duration-200", adminUsersLoading && "opacity-60 pointer-events-none")} aria-busy={adminUsersLoading}>
+                    {adminUsersLoading && <div className="absolute right-2 top-2 z-10"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>}
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User ID</TableHead>
+                          <TableHead>Πλάνο</TableHead>
+                          <TableHead>Αγγελίες</TableHead>
+                          <TableHead>Εγγραφή</TableHead>
+                          <TableHead>Ρόλος</TableHead>
+                          <TableHead className="text-right">Ενέργειες</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {adminUsers.map((u) => (
+                          <TableRow key={u.user_id}>
+                            <TableCell>
+                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{u.user_id.slice(0, 16)}…</code>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={u.plan === "free" ? "outline" : "default"} className="capitalize">
+                                {u.plan === "free" ? null : <Crown className="h-3 w-3 mr-1" />}
+                                {u.plan}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{u.activeListings}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {new Date(u.created_at).toLocaleDateString("el-GR")}
+                            </TableCell>
+                            <TableCell>
+                              {u.is_admin ? (
+                                <Badge variant="secondary" className="gap-1">
+                                  <ShieldCheck className="h-3 w-3" /> Admin
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Χρήστης</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end items-center gap-2">
+                                <Select
+                                  value={u.plan}
+                                  onValueChange={(val) => changePlan(u.user_id, val)}
+                                  disabled={adminUsersBusyId === u.user_id}
+                                >
+                                  <SelectTrigger className="h-8 w-36 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {["free", "starter", "professional", "premium", "enterprise"].map((p) => (
+                                      <SelectItem key={p} value={p} className="text-xs capitalize">{p}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {u.is_admin ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={adminUsersBusyId === u.user_id}
+                                    onClick={() => revokeAdmin(u.user_id)}
+                                  >
+                                    <ShieldOff className="h-3.5 w-3.5 mr-1" /> Αφαίρεση admin
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    disabled={adminUsersBusyId === u.user_id}
+                                    onClick={async () => {
+                                      setAdminUsersBusyId(u.user_id);
+                                      try {
+                                        const token = await session?.getToken();
+                                        const res = await fetch(`${BASE}/api/admin/roles`, {
+                                          method: "POST",
+                                          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                                          body: JSON.stringify({ user_id: u.user_id }),
+                                        });
+                                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                        setAdminUsers((prev) => prev.map((x) => (x.user_id === u.user_id ? { ...x, is_admin: true } : x)));
+                                        toast({ title: "Δικαίωμα admin εκχωρήθηκε" });
+                                      } catch (err: unknown) {
+                                        toast({ title: "Σφάλμα εκχώρησης admin", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+                                      } finally {
+                                        setAdminUsersBusyId(null);
+                                      }
+                                    }}
+                                  >
+                                    <ShieldPlus className="h-3.5 w-3.5 mr-1" /> Admin
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {/* Pagination */}
+                {adminUsersTotal > USER_PAGE_SIZE && (
+                  <div className="flex items-center justify-between gap-3 border-t pt-3 mt-3 text-xs text-muted-foreground">
+                    <span>
+                      Σελίδα {adminUsersPage + 1} από {Math.ceil(adminUsersTotal / USER_PAGE_SIZE)} · {adminUsersTotal} συνολικά
+                    </span>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" disabled={adminUsersPage === 0 || adminUsersLoading} onClick={() => setAdminUsersPage((p) => Math.max(0, p - 1))}>
+                        <ChevronLeft className="h-4 w-4" /> Προηγ.
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={(adminUsersPage + 1) * USER_PAGE_SIZE >= adminUsersTotal || adminUsersLoading} onClick={() => setAdminUsersPage((p) => p + 1)}>
+                        Επόμ. <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>

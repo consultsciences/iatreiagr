@@ -2,10 +2,11 @@ import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { doctorProfilesTable, clinicClaimsTable, clinicClaimAuditLogTable, userRolesTable, listingsTable } from "@workspace/db";
-import { eq, and, desc, ilike, or, sql, gte, lte, like, SQL } from "drizzle-orm";
+import { eq, and, desc, ilike, or, sql, gte, lte, like, SQL, ne, count } from "drizzle-orm";
 import { AdminUpdateDoctorBody, AdminUpdateClaimBody, AdminCreateAuditLogBody, AdminUpdateListingStatusBody } from "@workspace/api-zod";
 import type { DoctorProfile as DbDoctorProfile } from "@workspace/db";
 import type { DoctorProfile, ClinicClaim, AuditLogEntry } from "@workspace/types";
+import { userSubscriptionsTable } from "@workspace/db";
 import { invalidateCountsCache } from "./listings";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { notifySellerOfListingStatusChange } from "../lib/listingEmail";
@@ -208,6 +209,73 @@ router.patch("/admin/listings/:id", requireAdmin, async (req, res) => {
   }
 
   res.json(row);
+});
+
+// GET /api/admin/stats — aggregate counts across listings, users, doctors, claims
+router.get("/admin/stats", requireAdmin, async (req, res) => {
+  const [listingStats, totalUsers, totalDoctors, pendingClaims] = await Promise.all([
+    db.select({ status: listingsTable.status, n: count() }).from(listingsTable).groupBy(listingsTable.status),
+    db.select({ n: count() }).from(userSubscriptionsTable),
+    db.select({ n: count() }).from(doctorProfilesTable),
+    db.select({ n: count() }).from(clinicClaimsTable).where(eq(clinicClaimsTable.status, "pending")),
+  ]);
+  const byStatus: Record<string, number> = {};
+  for (const row of listingStats) byStatus[row.status] = Number(row.n);
+
+  res.json({
+    listings: {
+      total: Object.values(byStatus).reduce((a, b) => a + b, 0),
+      published: byStatus["published"] ?? 0,
+      pending: byStatus["pending"] ?? 0,
+      archived: byStatus["archived"] ?? 0,
+    },
+    users: Number(totalUsers[0]?.n ?? 0),
+    doctors: Number(totalDoctors[0]?.n ?? 0),
+    pendingClaims: Number(pendingClaims[0]?.n ?? 0),
+  });
+});
+
+// GET /api/admin/users — list users with their plans and active listing counts
+router.get("/admin/users", requireAdmin, async (req, res) => {
+  const { limit = "50", offset = "0" } = req.query as Record<string, string>;
+  const lim = Math.min(parseInt(limit) || 50, 200);
+  const off = parseInt(offset) || 0;
+
+  const [rows, countResult, listingCounts, adminRows] = await Promise.all([
+    db.select().from(userSubscriptionsTable).orderBy(desc(userSubscriptionsTable.created_at)).limit(lim).offset(off),
+    db.select({ n: count() }).from(userSubscriptionsTable),
+    db.select({ user_id: listingsTable.user_id, n: count() })
+      .from(listingsTable)
+      .where(ne(listingsTable.status, "archived"))
+      .groupBy(listingsTable.user_id),
+    db.select({ user_id: userRolesTable.user_id }).from(userRolesTable).where(eq(userRolesTable.role, "admin")),
+  ]);
+
+  const countMap: Record<string, number> = {};
+  for (const r of listingCounts) if (r.user_id) countMap[r.user_id] = Number(r.n);
+  const adminSet = new Set(adminRows.map((r) => r.user_id));
+
+  res.json({
+    users: rows.map((r) => ({ ...r, activeListings: countMap[r.user_id] ?? 0, is_admin: adminSet.has(r.user_id) })),
+    total: Number(countResult[0]?.n ?? 0),
+  });
+});
+
+// POST /api/admin/roles — grant a role (default: admin) to a user
+router.post("/admin/roles", requireAdmin, async (req, res) => {
+  const { user_id, role = "admin" } = req.body as { user_id?: string; role?: string };
+  if (!user_id) { res.status(400).json({ error: "user_id required" }); return; }
+  await db.insert(userRolesTable).values({ user_id, role }).onConflictDoNothing();
+  res.status(201).json({ user_id, role });
+});
+
+// DELETE /api/admin/roles/:userId — revoke admin role
+router.delete("/admin/roles/:userId", requireAdmin, async (req, res) => {
+  const { userId: currentUserId } = getAuth(req);
+  const targetUserId = req.params.userId as string;
+  if (targetUserId === currentUserId) { res.status(400).json({ error: "Cannot revoke your own admin role" }); return; }
+  await db.delete(userRolesTable).where(and(eq(userRolesTable.user_id, targetUserId), eq(userRolesTable.role, "admin")));
+  res.status(204).end();
 });
 
 export default router;
