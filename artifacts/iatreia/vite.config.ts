@@ -27,6 +27,13 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  define: {
+    // Prefer the Replit-managed CLERK_PUBLISHABLE_KEY (which is paired with CLERK_SECRET_KEY)
+    // over the stale VITE_CLERK_PUBLISHABLE_KEY that may be from a different instance.
+    "import.meta.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify(
+      process.env.CLERK_PUBLISHABLE_KEY ?? process.env.VITE_CLERK_PUBLISHABLE_KEY ?? "",
+    ),
+  },
   plugins: [
     react(),
     runtimeErrorOverlay(),
@@ -71,6 +78,12 @@ export default defineConfig({
     allowedHosts: true,
     fs: {
       strict: true,
+    },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
     },
   },
   preview: {

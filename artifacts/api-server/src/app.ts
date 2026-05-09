@@ -62,16 +62,18 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
-);
+const clerkMw = clerkMiddleware((req) => ({
+  publishableKey: publishableKeyFromHost(
+    getClerkProxyHost(req) ?? "",
+    process.env.CLERK_PUBLISHABLE_KEY,
+  ),
+}));
 
-app.use("/api", router);
+// Scope Clerk middleware to /api only — prevents it from intercepting
+// non-API routes (e.g. health checks or dev frontend requests) and
+// throwing 500s when a stale session cookie from a different Clerk
+// instance is present.
+app.use("/api", clerkMw, router);
 
 if (process.env.NODE_ENV === "production") {
   const staticDir = path.join(process.cwd(), "artifacts/iatreia/dist/public");
