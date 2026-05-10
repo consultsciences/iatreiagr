@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Cookie, ChevronDown, ChevronUp, X, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const STORAGE_KEY = "iatreia_cookie_consent_v1";
 
 export type CookiePreferences = {
   necessary: true;
@@ -11,26 +9,6 @@ export type CookiePreferences = {
   functional: boolean;
   marketing: boolean;
 };
-
-type SavedConsent = {
-  preferences: CookiePreferences;
-  savedAt: string;
-};
-
-function loadConsent(): SavedConsent | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as SavedConsent;
-  } catch {
-    return null;
-  }
-}
-
-function saveConsent(preferences: CookiePreferences): void {
-  const data: SavedConsent = { preferences, savedAt: new Date().toISOString() };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
 
 interface ToggleProps {
   checked: boolean;
@@ -96,7 +74,7 @@ const CATEGORIES = [
 ];
 
 export function CookieConsent() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [prefs, setPrefs] = useState({
     analytics: false,
@@ -104,27 +82,11 @@ export function CookieConsent() {
     marketing: false,
   });
 
-  useEffect(() => {
-    const saved = loadConsent();
-    if (!saved) {
-      setVisible(true);
-    }
-  }, []);
-
   const accept = (all: boolean) => {
-    const preferences: CookiePreferences = {
-      necessary: true,
-      analytics: all,
-      functional: all,
-      marketing: all,
-    };
-    saveConsent(preferences);
     setVisible(false);
   };
 
   const saveSelected = () => {
-    const preferences: CookiePreferences = { necessary: true, ...prefs };
-    saveConsent(preferences);
     setVisible(false);
   };
 
@@ -236,4 +198,4 @@ export function CookieConsent() {
   );
 }
 
-export { loadConsent };
+export { };
