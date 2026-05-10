@@ -23,11 +23,6 @@ const AuthPage = () => {
 
   const basePath = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 
-  const handleTabChange = () => {
-    setTermsAccepted(false);
-    setShowError(false);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
       <header className="border-b bg-background/80 backdrop-blur">

@@ -82,7 +82,7 @@ export function CookieConsent() {
     marketing: false,
   });
 
-  const accept = (all: boolean) => {
+  const accept = (_all: boolean) => {
     setVisible(false);
   };
 
