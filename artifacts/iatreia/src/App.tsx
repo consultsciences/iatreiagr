@@ -100,7 +100,7 @@ const App = () => (
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/auth/*" element={<AuthPage />} />
               <Route path="/bookings" element={<Bookings />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
@@ -108,7 +108,7 @@ const App = () => (
               <Route path="/my-listings" element={<MyListings />} />
               <Route path="/advertise" element={<PlacementOrder />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/doctors/auth" element={<DoctorAuth />} />
+              <Route path="/doctors/auth/*" element={<DoctorAuth />} />
               <Route path="/doctors/dashboard" element={<DoctorDashboard />} />
               <Route path="/doctors/onboarding" element={<DoctorOnboarding />} />
               <Route path="/doctors/:userId" element={<DoctorProfile />} />
