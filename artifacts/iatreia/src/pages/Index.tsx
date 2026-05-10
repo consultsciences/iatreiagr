@@ -78,12 +78,6 @@ const Index = () => {
   const [featuredError, setFeaturedError] = useState(false);
   const [counts, setCounts] = useState<ListingCounts | null>(null);
   const [countsLoaded, setCountsLoaded] = useState(false);
-  const [heroIdx, setHeroIdx] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setHeroIdx((i) => (i + 1) % HERO_IMAGES.length), 5000);
-    return () => clearInterval(t);
-  }, []);
 
   function handleHeroSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -190,24 +184,22 @@ const Index = () => {
 
           <div className="relative hidden lg:block">
             <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-primary/10 to-accent/10 blur-2xl" />
-            {HERO_IMAGES.map((img, i) => (
+            <div className="relative grid h-full min-h-[420px] grid-cols-[3fr_2fr] grid-rows-2 gap-2 overflow-hidden rounded-2xl shadow-2xl">
               <img
-                key={img.src}
-                src={img.src}
-                alt={img.alt}
-                width={1600}
-                height={1024}
-                className={`relative rounded-2xl object-cover shadow-2xl transition-opacity duration-1000 ${i === heroIdx ? "opacity-100" : "absolute inset-0 opacity-0"}`}
+                src={HERO_IMAGES[0].src}
+                alt={HERO_IMAGES[0].alt}
+                className="row-span-2 h-full w-full object-cover"
               />
-            ))}
-            <div className="absolute bottom-4 right-4 flex gap-1.5">
-              {HERO_IMAGES.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setHeroIdx(i)}
-                  className={`h-1.5 rounded-full transition-all ${i === heroIdx ? "w-5 bg-white" : "w-1.5 bg-white/50"}`}
-                />
-              ))}
+              <img
+                src={HERO_IMAGES[1].src}
+                alt={HERO_IMAGES[1].alt}
+                className="h-full w-full object-cover"
+              />
+              <img
+                src={HERO_IMAGES[2].src}
+                alt={HERO_IMAGES[2].alt}
+                className="h-full w-full object-cover"
+              />
             </div>
           </div>
         </div>

@@ -14,6 +14,14 @@ vi.mock("@/lib/listings", () => ({
   fetchListingCounts: vi.fn(() => Promise.resolve({ total: 0, spaces: 0, equipment: 0, jobs: 0, supplies: 0, services: 0 })),
 }));
 
+vi.mock("@clerk/clerk-react", () => ({
+  useUser: () => ({ user: null, isLoaded: true }),
+  useClerk: () => ({ signOut: vi.fn(), session: null }),
+  ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
+  SignIn: () => null,
+  SignUp: () => null,
+}));
+
 import Index from "./Index";
 
 function renderPage() {
