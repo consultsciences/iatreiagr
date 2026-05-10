@@ -305,12 +305,10 @@ async function openBillingPortal(): Promise<string> {
 const PlanCard = ({
   p,
   loadingPlan,
-  isSignedIn,
   onPlanClick,
 }: {
   p: Plan;
   loadingPlan: string | null;
-  isSignedIn: boolean | undefined;
   onPlanClick: (p: Plan) => void;
 }) => (
   <Card
@@ -460,7 +458,6 @@ const Pricing = () => {
                   key={p.name}
                   p={p}
                   loadingPlan={loadingPlan}
-                  isSignedIn={isSignedIn}
                   onPlanClick={handlePlanClick}
                 />
               ))}
