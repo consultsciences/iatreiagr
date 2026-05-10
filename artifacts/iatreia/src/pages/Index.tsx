@@ -413,7 +413,7 @@ const Index = () => {
                     "Δωρεάν Basic καταχώριση",
                     "Premium προβολή από €29/μήνα",
                     "Επαληθευμένο σήμα για εταιρείες",
-                    "Πλήρη στατιστικά leads & προβολών",
+                    "Αυξημένη ορατότητα & προβολή",
                   ].map((t) => (
                     <li key={t} className="flex items-start gap-2 text-sm">
                       <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent" /> {t}

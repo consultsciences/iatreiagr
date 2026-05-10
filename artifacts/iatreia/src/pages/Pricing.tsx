@@ -39,7 +39,7 @@ const planGroups: PlanGroup[] = [
       {
         name: "Free",
         price: "€0",
-        period: "πάντα",
+        period: "μία καταχώριση",
         desc: "1 ενεργή αγγελία. Απαιτείται εγγραφή και επαλήθευση email.",
         cta: "Εγγραφή & Δημοσίευση",
         features: [
@@ -53,7 +53,7 @@ const planGroups: PlanGroup[] = [
         plan: "plus",
         name: "Plus",
         price: "€19",
-        period: "/αγγελία",
+        period: "/ έξτρα αγγελία",
         desc: "Μία πληρωμένη αγγελία χωρίς μηνιαία συνδρομή.",
         cta: "Επιλέξτε Plus",
         features: [
@@ -101,7 +101,7 @@ const planGroups: PlanGroup[] = [
         name: "Starter",
         price: "€39",
         period: "/μήνα",
-        desc: "Ιδανικό για μικρά ιατρεία και starter καταχωρητές.",
+        desc: "Ιδανικό για ιατρεία και starter καταχωρητές.",
         cta: "Επιλέξτε Starter",
         highlight: true,
         features: [
@@ -150,7 +150,6 @@ const planGroups: PlanGroup[] = [
           "15 ενεργές αγγελίες",
           "Ανεβάσματα brochure (PDF)",
           "Εταιρική σελίδα",
-          "Πλήρη στατιστικά leads",
         ],
       },
     ],
@@ -219,8 +218,7 @@ const planGroups: PlanGroup[] = [
         features: [
           "Εταιρικό premium προφίλ",
           "Featured σήμανση",
-          "Φόρμα επικοινωνίας από γιατρούς",
-          "Στατιστικά leads",
+          "Φόρμα επικοινωνίας",
         ],
       },
       {
@@ -234,7 +232,7 @@ const planGroups: PlanGroup[] = [
         features: [
           "Αφιερωμένη σελίδα partner",
           "Logo & website link",
-          "Φόρμα επικοινωνίας από γιατρούς",
+          "Φόρμα επικοινωνίας",
           "Προβολή στο clinic-launch",
         ],
       },

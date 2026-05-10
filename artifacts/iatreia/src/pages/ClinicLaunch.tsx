@@ -55,8 +55,7 @@ const ClinicLaunch = () => (
           Ένας οδηγός. Όλοι οι συνεργάτες. Μηδέν χάσιμο χρόνου.
         </h1>
         <p className="mt-4 text-muted-foreground">
-          Συνδυάστε χώρο, εξοπλισμό, αδειοδότηση και χρηματοδότηση από επαληθευμένους
-          συνεργάτες του iatreia.gr. Χωρίς κρυφές χρεώσεις — οι συμφωνίες γίνονται απευθείας.
+          Βρείτε χώρο, εξοπλισμό, αδειοδότηση και χρηματοδότηση — όλα σε ένα μέρος.
         </p>
       </div>
     </section>
@@ -68,7 +67,7 @@ const ClinicLaunch = () => (
           <div className="flex-1">
             <p className="font-bold text-foreground">Προσφέρετε υπηρεσίες ανοίγματος ιατρείου;</p>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Αποκτήστε αφιερωμένη σελίδα με πλήρη πρόταση, logo, website link & φόρμα επικοινωνίας απευθείας από γιατρούς. Από €999.
+              Αποκτήστε αφιερωμένη σελίδα με πλήρη πρόταση, logo, website link & φόρμα επικοινωνίας.
             </p>
           </div>
           <Button asChild className="shrink-0">
