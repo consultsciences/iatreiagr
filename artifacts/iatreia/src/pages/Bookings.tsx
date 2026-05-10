@@ -4,7 +4,7 @@ import { format, parseISO, isPast, differenceInHours } from "date-fns";
 import { el } from "date-fns/locale";
 import {
   Calendar as CalendarIcon, Clock, MapPin, Video, LogOut,
-  Loader2, Search as SearchIcon, X, Ban,
+  Loader2, Search as SearchIcon, X, Ban, ShieldCheck,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,10 +36,23 @@ const BookingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     document.title = "Τα ραντεβού μου | iatreia.gr";
   }, []);
+
+  useEffect(() => {
+    if (!user || !session) { setIsAdmin(false); return; }
+    session.getToken().then((token) => {
+      fetch(`${BASE}/api/admin/roles/check`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then((r) => r.ok ? r.json() : { is_admin: false })
+        .then((d) => setIsAdmin(d.is_admin === true))
+        .catch(() => setIsAdmin(false));
+    });
+  }, [user, session]);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth?redirect=/bookings", { replace: true });
@@ -181,6 +194,13 @@ const BookingsPage = () => {
           <Logo size="lg" />
           <div className="flex items-center gap-2">
             <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
+            {isAdmin && (
+              <Button asChild variant="ghost" size="sm" className="text-primary">
+                <Link to="/admin">
+                  <ShieldCheck className="mr-1.5 h-4 w-4" /> Διαχείριση
+                </Link>
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="mr-1.5 h-4 w-4" /> Αποσύνδεση
             </Button>
