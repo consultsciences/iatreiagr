@@ -93,8 +93,11 @@ const ClinicLaunch = () => (
                 </li>
               ))}
             </ul>
-            <Button asChild className="w-full">
-              <Link to="/contact">Ζητήστε πρόταση <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Button asChild className="w-full text-left h-auto py-3 px-4 whitespace-normal leading-snug">
+              <Link to="/pricing#partners">
+                Παρέχετε Υπηρεσίες; Καταχωρίστε την εταιρία και τις υπηρεσίες που παρέχετε
+                <ArrowRight className="ml-2 h-4 w-4 shrink-0 inline" />
+              </Link>
             </Button>
           </Card>
         ))}

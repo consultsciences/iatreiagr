@@ -16,105 +16,265 @@ type Plan = {
   price: string;
   period?: string;
   desc: string;
-  audience: string;
   cta: string;
   features: string[];
   highlight?: boolean;
+  isEnterprise?: boolean;
+  isContact?: boolean;
 };
 
-const plans: Plan[] = [
-  {
-    name: "Free",
-    price: "€0",
-    period: "πάντα",
-    desc: "Για ιδιώτες επαγγελματίες με περιστασιακές καταχωρίσεις.",
-    audience: "Ιδιώτες ιατροί",
-    cta: "Ξεκινήστε δωρεάν",
-    features: [
-      "Έως 1 ενεργή αγγελία",
-      "Βασικό προφίλ",
-      "Φόρμα ενδιαφέροντος",
-      "Email ειδοποιήσεις",
-    ],
-  },
-  {
-    plan: "starter",
-    name: "Starter",
-    price: "€29",
-    period: "/μήνα",
-    desc: "Για όσους ξεκινούν να καταχωρούν τακτικά.",
-    audience: "Ιατρεία & μικροί καταχωρητές",
-    cta: "Επιλέξτε Starter",
-    features: [
-      "Έως 5 ενεργές αγγελίες",
-      "Στοιχεία επικοινωνίας ορατά",
-      "Βασικά στατιστικά",
-      "Email υποστήριξη",
-    ],
-  },
-  {
-    plan: "professional",
-    name: "Professional",
-    price: "€89",
-    period: "/μήνα",
-    desc: "Για ενεργούς καταχωρητές με ανάγκη προβολής.",
-    audience: "Μεσίτες, διανομείς, εταιρείες",
-    cta: "Επιλέξτε Professional",
-    highlight: true,
-    features: [
-      "Έως 25 ενεργές αγγελίες",
-      "Featured σήμανση",
-      "PDF brochures",
-      "Πλήρη lead analytics",
-      "Εταιρικό προφίλ",
-      "Προτεραιότητα υποστήριξης",
-    ],
-  },
-  {
-    plan: "premium",
-    name: "Premium",
-    price: "€249",
-    period: "/μήνα",
-    desc: "Για εταιρείες με υψηλό όγκο και ανάγκη μεγάλης εμβέλειας.",
-    audience: "Προμηθευτές & μεγάλες κλινικές",
-    cta: "Επιλέξτε Premium",
-    features: [
-      "Έως 100 ενεργές αγγελίες",
-      "Top placement σε κατηγορίες",
-      "Επαληθευμένο σήμα",
-      "Πολλαπλοί χρήστες",
-      "Προβολή σε σελίδες πόλεων",
-      "Account manager",
-    ],
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    desc: "Για banks, leasing companies, εθνικούς διανομείς και partners.",
-    audience: "Banks, leasing, εθνικοί συνεργάτες",
-    cta: "Επικοινωνία πωλήσεων",
-    features: [
-      "Απεριόριστες αγγελίες",
-      "Custom landing pages",
-      "API & μαζική εισαγωγή",
-      "Sponsorships & banners",
-      "Newsletter co-branding",
-      "SLA & dedicated team",
-    ],
-  },
-];
+type PlanGroup = {
+  id: string;
+  title: string;
+  audience: string;
+  plans: Plan[];
+};
 
-const addons = [
-  { title: "Featured Listing", price: "€19/αγγελία", desc: "7 ημέρες προβολή στην κορυφή της κατηγορίας." },
-  { title: "Urgent Tag", price: "€9/αγγελία", desc: "Σήμανση «Άμεσα» για ταχύτερη ανταπόκριση." },
-  { title: "Homepage Spot", price: "€149/εβδομάδα", desc: "Προβολή στην πρώτη σελίδα του iatreia.gr." },
-  { title: "City Banner", price: "€89/εβδομάδα", desc: "Banner σε στοχευμένη σελίδα πόλης." },
+const planGroups: PlanGroup[] = [
+  {
+    id: "individuals",
+    title: "Ιδιώτες / Επαγγελματίες",
+    audience: "Ιατροί, φυσιοθεραπευτές και άλλοι επαγγελματίες υγείας",
+    plans: [
+      {
+        name: "Free",
+        price: "€0",
+        period: "πάντα",
+        desc: "1 ενεργή αγγελία. Απαιτείται εγγραφή και επαλήθευση email.",
+        cta: "Εγγραφή & Δημοσίευση",
+        features: [
+          "1 ενεργή αγγελία",
+          "Απαιτείται εγγραφή & επαλήθευση email",
+          "Βασικό προφίλ",
+          "Φόρμα ενδιαφέροντος",
+        ],
+      },
+      {
+        plan: "plus",
+        name: "Plus",
+        price: "€19",
+        period: "/αγγελία",
+        desc: "Μία πληρωμένη αγγελία χωρίς μηνιαία συνδρομή.",
+        cta: "Επιλέξτε Plus",
+        features: [
+          "1 αγγελία",
+          "Πλήρης ορατότητα επικοινωνίας",
+          "Χωρίς μηνιαία δέσμευση",
+          "Email ειδοποιήσεις",
+        ],
+      },
+      {
+        plan: "featured_boost",
+        name: "Featured Boost",
+        price: "€29",
+        period: "/αγγελία",
+        desc: "Προβολή στην κορυφή της κατηγορίας για 7 ημέρες.",
+        cta: "Ενίσχυση αγγελίας",
+        features: [
+          "Featured σήμανση 7 ημερών",
+          "Top placement κατηγορίας",
+          "Αυξημένη ορατότητα",
+        ],
+      },
+      {
+        plan: "verified_pro",
+        name: "Verified Pro",
+        price: "€29",
+        period: "εφάπαξ",
+        desc: "Επαληθευμένο σήμα στο προφίλ σας — μία φορά, για πάντα.",
+        cta: "Αποκτήστε Verified",
+        features: [
+          "✓ Verified σήμα προφίλ",
+          "Εφάπαξ πληρωμή",
+          "Αυξημένη αξιοπιστία",
+        ],
+      },
+    ],
+  },
+  {
+    id: "starter",
+    title: "Starter Κλινική / Starter Πωλητής",
+    audience: "Ιατρεία και μικρές επιχειρήσεις με τακτικές ανάγκες καταχώρισης",
+    plans: [
+      {
+        plan: "starter",
+        name: "Starter",
+        price: "€39",
+        period: "/μήνα",
+        desc: "Ιδανικό για μικρά ιατρεία και starter καταχωρητές.",
+        cta: "Επιλέξτε Starter",
+        highlight: true,
+        features: [
+          "3 ενεργές αγγελίες",
+          "Αποθηκευμένες αγγελίες",
+          "Featured ορατότητα",
+          "Email υποστήριξη",
+        ],
+      },
+    ],
+  },
+  {
+    id: "brokers",
+    title: "Μεσίτες / Ιδιοκτήτες",
+    audience: "Μεσιτικά γραφεία και ιδιοκτήτες ιατρικών χώρων",
+    plans: [
+      {
+        plan: "pro_broker",
+        name: "Pro",
+        price: "€99",
+        period: "/μήνα",
+        desc: "Για μεσίτες και ιδιοκτήτες με πολλαπλούς ιατρικούς χώρους.",
+        cta: "Επιλέξτε Pro",
+        features: [
+          "10 ενεργές αγγελίες",
+          "Εταιρικό προφίλ",
+          "Featured εκπτώσεις",
+          "Στόχευση πόλης",
+        ],
+      },
+    ],
+  },
+  {
+    id: "suppliers",
+    title: "Προμηθευτές Εξοπλισμού",
+    audience: "Εταιρείες ιατρικού εξοπλισμού και αναλωσίμων",
+    plans: [
+      {
+        plan: "pro_supplier",
+        name: "Pro",
+        price: "€149",
+        period: "/μήνα",
+        desc: "Για προμηθευτές εξοπλισμού με εκτεταμένο κατάλογο.",
+        cta: "Επιλέξτε Pro",
+        features: [
+          "15 ενεργές αγγελίες",
+          "Ανεβάσματα brochure (PDF)",
+          "Εταιρική σελίδα",
+          "Πλήρη στατιστικά leads",
+        ],
+      },
+    ],
+  },
+  {
+    id: "recruiters",
+    title: "Recruiters / Κλινικές που Προσλαμβάνουν",
+    audience: "Κλινικές, νοσοκομεία και εταιρείες που αναζητούν ιατρικό προσωπικό",
+    plans: [
+      {
+        plan: "job_single",
+        name: "1 Αγγελία Εργασίας",
+        price: "€39",
+        period: "/ 30 ημέρες",
+        desc: "Μία αγγελία εργασίας ενεργή για 30 ημέρες.",
+        cta: "Δημοσίευση αγγελίας",
+        features: [
+          "1 αγγελία 30 ημερών",
+          "Πλήρης ορατότητα",
+          "Email ειδοποιήσεις υποψηφίων",
+        ],
+      },
+      {
+        plan: "job_pack",
+        name: "5-Pack",
+        price: "€139",
+        period: "",
+        desc: "5 αγγελίες εργασίας με εκπτωτικό πακέτο.",
+        cta: "Αγορά 5-Pack",
+        highlight: true,
+        features: [
+          "5 αγγελίες εργασίας",
+          "Εξοικονόμηση €56",
+          "Credits χωρίς λήξη",
+          "Email ειδοποιήσεις υποψηφίων",
+        ],
+      },
+      {
+        plan: "hiring_plan",
+        name: "Hiring Plan",
+        price: "€249",
+        period: "/μήνα",
+        desc: "Απεριόριστες αγγελίες εργασίας για ενεργές κλινικές.",
+        cta: "Επιλέξτε Hiring Plan",
+        features: [
+          "Απεριόριστες αγγελίες εργασίας",
+          "Εταιρικό προφίλ εργοδότη",
+          "Featured προβολή",
+          "Προτεραιότητα υποστήριξης",
+        ],
+      },
+    ],
+  },
+  {
+    id: "partners",
+    title: "Συνεργάτες / Σύμβουλοι / Τράπεζες",
+    audience: "Leasing, τράπεζες, συμβουλευτικές εταιρείες και εθνικοί συνεργάτες",
+    plans: [
+      {
+        plan: "premium_profile",
+        name: "Premium Profile",
+        price: "€99",
+        period: "/μήνα",
+        desc: "Εταιρικό premium προφίλ με φόρμα επικοινωνίας.",
+        cta: "Επιλέξτε Premium Profile",
+        features: [
+          "Εταιρικό premium προφίλ",
+          "Featured σήμανση",
+          "Φόρμα επικοινωνίας από γιατρούς",
+          "Στατιστικά leads",
+        ],
+      },
+      {
+        plan: "featured_partner",
+        name: "Featured Partner",
+        price: "€149",
+        period: "/μήνα",
+        desc: "Αφιερωμένη σελίδα με logo, website link και φόρμα επικοινωνίας.",
+        cta: "Επιλέξτε Featured Partner",
+        highlight: true,
+        features: [
+          "Αφιερωμένη σελίδα partner",
+          "Logo & website link",
+          "Φόρμα επικοινωνίας από γιατρούς",
+          "Προβολή στο clinic-launch",
+        ],
+      },
+      {
+        plan: "sponsor",
+        name: "Sponsor Package",
+        price: "€299+",
+        period: "/μήνα",
+        desc: "Sponsorships, banners και co-branding σε όλο το iatreia.gr.",
+        cta: "Επικοινωνία",
+        isContact: true,
+        features: [
+          "Banners & sponsorships",
+          "Newsletter co-branding",
+          "City page placements",
+          "Custom landing page",
+        ],
+      },
+      {
+        name: "Enterprise",
+        price: "Custom",
+        desc: "Για μεγάλες εταιρείες με ειδικές ανάγκες και υψηλό όγκο.",
+        cta: "Επικοινωνία πωλήσεων",
+        isEnterprise: true,
+        features: [
+          "Απεριόριστες αγγελίες",
+          "API & μαζική εισαγωγή",
+          "SLA & dedicated team",
+          "Custom τιμολόγηση",
+        ],
+      },
+    ],
+  },
 ];
 
 const faqs = [
   { q: "Πληρώνω προμήθεια όταν κλείσω συμφωνία;", a: "Όχι. Δεν υπάρχουν προμήθειες συναλλαγών — μόνο συνδρομές και προαιρετικές χρεώσεις προβολής." },
   { q: "Μπορώ να αλλάξω πακέτο οποιαδήποτε στιγμή;", a: "Ναι, η αναβάθμιση και υποβάθμιση γίνεται με ένα κλικ από το dashboard σας." },
   { q: "Εκδίδετε τιμολόγιο;", a: "Ναι, για όλες τις πληρωμές εκδίδεται κανονικό τιμολόγιο παροχής υπηρεσιών." },
+  { q: "Χρειάζεται εγγραφή για το δωρεάν πακέτο;", a: "Ναι. Ακόμη και για τη δωρεάν αγγελία απαιτείται εγγραφή και επαλήθευση email. Δεν υπάρχει δημοσίευση αγγελίας χωρίς επιβεβαιωμένο λογαριασμό." },
 ];
 
 async function startCheckout(plan: string): Promise<string> {
@@ -126,10 +286,10 @@ async function startCheckout(plan: string): Promise<string> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? "Failed to create checkout session");
+    throw new Error((body as { error?: string }).error ?? "Failed to create checkout session");
   }
-  const data = await res.json();
-  return data.url as string;
+  const data = await res.json() as { url: string };
+  return data.url;
 }
 
 async function openBillingPortal(): Promise<string> {
@@ -138,9 +298,64 @@ async function openBillingPortal(): Promise<string> {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to open billing portal");
-  const data = await res.json();
-  return data.url as string;
+  const data = await res.json() as { url: string };
+  return data.url;
 }
+
+const PlanCard = ({
+  p,
+  loadingPlan,
+  isSignedIn,
+  onPlanClick,
+}: {
+  p: Plan;
+  loadingPlan: string | null;
+  isSignedIn: boolean | undefined;
+  onPlanClick: (p: Plan) => void;
+}) => (
+  <Card
+    className={`relative flex flex-col p-6 ${p.highlight ? "border-primary shadow-[var(--shadow-elevated)] scale-[1.02]" : ""}`}
+  >
+    {p.highlight && (
+      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground hover:bg-accent">
+        <Star className="mr-1 h-3 w-3 fill-current" /> Δημοφιλές
+      </Badge>
+    )}
+    <div className="mb-3">
+      <h4 className="text-lg font-bold">{p.name}</h4>
+    </div>
+    <div className="mb-3">
+      <span className="text-3xl font-bold">{p.price}</span>
+      {p.period && <span className="text-sm text-muted-foreground"> {p.period}</span>}
+    </div>
+    <p className="mb-4 text-sm text-muted-foreground">{p.desc}</p>
+    <ul className="mb-6 flex-1 space-y-2">
+      {p.features.map((f) => (
+        <li key={f} className="flex items-start gap-2 text-sm">
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {f}
+        </li>
+      ))}
+    </ul>
+    {p.isEnterprise || p.isContact ? (
+      <Button asChild variant="outline" className="w-full">
+        <Link to="/contact">{p.cta}</Link>
+      </Button>
+    ) : (
+      <Button
+        className={`w-full ${p.highlight ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+        variant={p.highlight ? "default" : "outline"}
+        disabled={loadingPlan === p.plan}
+        onClick={() => onPlanClick(p)}
+      >
+        {loadingPlan === p.plan ? (
+          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Παρακαλώ περιμένετε...</>
+        ) : (
+          p.cta
+        )}
+      </Button>
+    )}
+  </Card>
+);
 
 const Pricing = () => {
   const { isSignedIn } = useUser();
@@ -153,18 +368,23 @@ const Pricing = () => {
     if (checkoutResult) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+    const hash = window.location.hash;
+    if (hash) {
+      setTimeout(() => {
+        const el = document.querySelector(hash);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   }, [checkoutResult]);
 
   const handlePlanClick = async (p: Plan) => {
-    if (p.name === "Enterprise") return;
-
-    if (!p.plan) {
-      window.location.href = isSignedIn ? "/post" : "/auth";
+    if (!isSignedIn) {
+      window.location.href = `/auth?redirect=/pricing`;
       return;
     }
 
-    if (!isSignedIn) {
-      window.location.href = `/auth?redirect=/pricing`;
+    if (!p.plan) {
+      window.location.href = "/post";
       return;
     }
 
@@ -173,8 +393,8 @@ const Pricing = () => {
     try {
       const url = await startCheckout(p.plan);
       window.location.href = url;
-    } catch (err: any) {
-      setError(err.message ?? "Σφάλμα. Παρακαλώ δοκιμάστε ξανά.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Σφάλμα. Παρακαλώ δοκιμάστε ξανά.");
     } finally {
       setLoadingPlan(null);
     }
@@ -208,103 +428,74 @@ const Pricing = () => {
             Πληρώστε για προβολή — ποτέ για συναλλαγές.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Διαφανή πακέτα για κάθε μέγεθος επιχείρησης. Δωρεάν εκκίνηση, αναβάθμιση όποτε χρειαστείτε.
+            Διαφανή πακέτα για κάθε κατηγορία επαγγελματία υγείας. Δωρεάν εκκίνηση — απαιτείται εγγραφή.
           </p>
         </div>
       </section>
 
-      <section className="py-14">
-        <div className="container mx-auto px-4">
-          <div className="grid gap-5 lg:grid-cols-5">
-            {plans.map((p) => (
-              <Card
-                key={p.name}
-                className={`relative flex flex-col p-6 ${p.highlight ? "border-primary shadow-[var(--shadow-elevated)] lg:scale-105" : ""}`}
-              >
-                {p.highlight && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground hover:bg-accent">
-                    <Star className="mr-1 h-3 w-3 fill-current" /> Δημοφιλές
-                  </Badge>
-                )}
-                <div className="mb-4">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{p.audience}</div>
-                  <h3 className="mt-1 text-xl font-bold">{p.name}</h3>
-                </div>
-                <div className="mb-4">
-                  <span className="text-3xl font-bold">{p.price}</span>
-                  {p.period && <span className="text-sm text-muted-foreground"> {p.period}</span>}
-                </div>
-                <p className="mb-5 text-sm text-muted-foreground">{p.desc}</p>
-                <ul className="mb-6 flex-1 space-y-2.5">
-                  {p.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {f}
-                    </li>
-                  ))}
-                </ul>
-
-                {p.name === "Enterprise" ? (
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to="/contact">{p.cta}</Link>
-                  </Button>
-                ) : (
-                  <Button
-                    className={`w-full ${p.highlight ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-                    variant={p.highlight ? "default" : "outline"}
-                    disabled={loadingPlan === p.plan}
-                    onClick={() => handlePlanClick(p)}
-                  >
-                    {loadingPlan === p.plan ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Παρακαλώ περιμένετε...</>
-                    ) : p.cta}
-                  </Button>
-                )}
-              </Card>
-            ))}
-          </div>
-
-          {isSignedIn && (
-            <div className="mt-8 text-center text-sm text-muted-foreground">
-              Ήδη συνδρομητής;{" "}
-              <button
-                className="underline hover:text-foreground"
-                onClick={async () => {
-                  try {
-                    const url = await openBillingPortal();
-                    window.location.href = url;
-                  } catch {
-                    setError("Αδυναμία ανοίγματος πύλης χρέωσης.");
-                  }
-                }}
-              >
-                Διαχειριστείτε τη συνδρομή σας →
-              </button>
+      {planGroups.map((group) => (
+        <section
+          key={group.id}
+          id={group.id}
+          className="border-b py-12 last:border-b-0"
+        >
+          <div className="container mx-auto px-4">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold md:text-3xl">{group.title}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{group.audience}</p>
             </div>
-          )}
-        </div>
-      </section>
+            <div
+              className={`grid gap-5 ${
+                group.plans.length === 1
+                  ? "max-w-sm"
+                  : group.plans.length === 2
+                    ? "sm:grid-cols-2 max-w-2xl"
+                    : group.plans.length === 3
+                      ? "sm:grid-cols-2 lg:grid-cols-3"
+                      : "sm:grid-cols-2 lg:grid-cols-4"
+              }`}
+            >
+              {group.plans.map((p) => (
+                <PlanCard
+                  key={p.name}
+                  p={p}
+                  loadingPlan={loadingPlan}
+                  isSignedIn={isSignedIn}
+                  onPlanClick={handlePlanClick}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      ))}
+
+      {isSignedIn && (
+        <section className="border-t py-6">
+          <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+            Ήδη συνδρομητής;{" "}
+            <button
+              className="underline hover:text-foreground"
+              onClick={async () => {
+                try {
+                  const url = await openBillingPortal();
+                  window.location.href = url;
+                } catch {
+                  setError("Αδυναμία ανοίγματος πύλης χρέωσης.");
+                }
+              }}
+            >
+              Διαχειριστείτε τη συνδρομή σας →
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="border-t bg-secondary/40 py-14">
-        <div className="container mx-auto px-4">
-          <div className="mb-8 max-w-2xl">
-            <Badge variant="secondary" className="mb-3"><Sparkles className="mr-1 h-3 w-3" /> Επιπλέον προβολή</Badge>
-            <h2 className="text-2xl font-bold md:text-3xl">Add-ons για στοχευμένη ενίσχυση</h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {addons.map((a) => (
-              <Card key={a.title} className="p-5">
-                <div className="mb-1 text-sm font-semibold text-primary">{a.price}</div>
-                <h3 className="mb-2 text-lg font-bold">{a.title}</h3>
-                <p className="text-sm text-muted-foreground">{a.desc}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14">
         <div className="container mx-auto max-w-3xl px-4">
-          <h2 className="mb-6 text-2xl font-bold md:text-3xl">Συχνές ερωτήσεις τιμολόγησης</h2>
+          <div className="mb-6 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="text-2xl font-bold md:text-3xl">Συχνές ερωτήσεις τιμολόγησης</h2>
+          </div>
           <div className="space-y-3">
             {faqs.map((f) => (
               <Card key={f.q} className="p-5">

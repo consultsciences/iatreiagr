@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck, ShieldOff, CheckCircle2, XCircle, Eye, EyeOff, ArrowLeft, Loader2, FileSearch, Search, ChevronLeft, ChevronRight, Clock, UserRound, Mail, Phone, Stethoscope, Package, Users, Crown, ShieldPlus } from "lucide-react";
+import { ShieldCheck, ShieldOff, CheckCircle2, XCircle, Eye, EyeOff, ArrowLeft, Loader2, FileSearch, Search, ChevronLeft, ChevronRight, Clock, UserRound, Mail, Phone, Stethoscope, Package, Users, Crown, ShieldPlus, LogOut } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -216,7 +216,7 @@ const LISTING_CATEGORIES: { value: string; label: string }[] = [
 ];
 
 const AdminDashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { session } = useClerk();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -1029,7 +1029,19 @@ const AdminDashboard = () => {
             </Button>
             <h1 className="text-xl font-semibold">Πίνακας Διαχειριστή</h1>
           </div>
-          <Badge variant="secondary">Admin</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary">Admin</Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await signOut();
+                navigate("/");
+              }}
+            >
+              <LogOut className="mr-1.5 h-4 w-4" /> Αποσύνδεση
+            </Button>
+          </div>
         </div>
       </header>
 
