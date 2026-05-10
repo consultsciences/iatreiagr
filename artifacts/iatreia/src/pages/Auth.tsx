@@ -32,13 +32,13 @@ const AuthPage = () => {
           <SignUp
             routing="path"
             path={`${basePath}/auth`}
-            afterSignUpUrl={`${basePath}${redirectTo}`}
+            fallbackRedirectUrl={`${basePath}${redirectTo}`}
           />
         ) : (
           <SignIn
             routing="path"
             path={`${basePath}/auth`}
-            afterSignInUrl={`${basePath}${redirectTo}`}
+            fallbackRedirectUrl={`${basePath}${redirectTo}`}
           />
         )}
       </main>

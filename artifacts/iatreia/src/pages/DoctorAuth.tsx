@@ -35,8 +35,7 @@ const DoctorAuthPage = () => {
           <SignIn
             routing="path"
             path={`${basePath}/doctors/auth`}
-            afterSignInUrl={`${basePath}/doctors/dashboard`}
-            afterSignUpUrl={`${basePath}/doctors/dashboard`}
+            fallbackRedirectUrl={`${basePath}/doctors/dashboard`}
           />
         </div>
       </main>
