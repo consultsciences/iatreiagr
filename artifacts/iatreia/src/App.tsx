@@ -73,7 +73,12 @@ const clerkLocalization = {
 };
 
 const App = () => (
-  <ClerkProvider publishableKey={PUBLISHABLE_KEY} appearance={clerkAppearance} localization={clerkLocalization}>
+  <ClerkProvider
+    publishableKey={PUBLISHABLE_KEY}
+    appearance={clerkAppearance}
+    localization={clerkLocalization}
+    clerkJSUrl="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  >
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
