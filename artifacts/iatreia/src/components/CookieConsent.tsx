@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Cookie, ChevronDown, ChevronUp, X, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const SESSION_KEY = "iatreia_cookie_consent_shown";
+
 export type CookiePreferences = {
   necessary: true;
   analytics: boolean;
@@ -74,7 +76,9 @@ const CATEGORIES = [
 ];
 
 export function CookieConsent() {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(
+    () => !sessionStorage.getItem(SESSION_KEY)
+  );
   const [expanded, setExpanded] = useState(false);
   const [prefs, setPrefs] = useState({
     analytics: false,
@@ -82,11 +86,8 @@ export function CookieConsent() {
     marketing: false,
   });
 
-  const accept = (_all: boolean) => {
-    setVisible(false);
-  };
-
-  const saveSelected = () => {
+  const dismiss = () => {
+    sessionStorage.setItem(SESSION_KEY, "1");
     setVisible(false);
   };
 
@@ -116,14 +117,14 @@ export function CookieConsent() {
               <Link
                 to="/privacy"
                 className="font-medium text-primary underline-offset-2 hover:underline"
-                onClick={() => setVisible(false)}
+                onClick={dismiss}
               >
                 Πολιτική Απορρήτου ↗
               </Link>
             </p>
           </div>
           <button
-            onClick={() => accept(false)}
+            onClick={dismiss}
             className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Κλείσιμο (αποδοχή μόνο απαραίτητων)"
             title="Κλείσιμο — αποδοχή μόνο απαραίτητων cookies"
@@ -180,15 +181,15 @@ export function CookieConsent() {
           </button>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => accept(false)} className="h-7 text-xs">
+            <Button variant="outline" size="sm" onClick={dismiss} className="h-7 text-xs">
               Μόνο Απαραίτητα
             </Button>
             {expanded && (
-              <Button variant="outline" size="sm" onClick={saveSelected} className="h-7 text-xs">
+              <Button variant="outline" size="sm" onClick={dismiss} className="h-7 text-xs">
                 Αποθήκευση Επιλογών
               </Button>
             )}
-            <Button size="sm" onClick={() => accept(true)} className="h-7 text-xs">
+            <Button size="sm" onClick={dismiss} className="h-7 text-xs">
               Αποδοχή Όλων
             </Button>
           </div>
@@ -197,5 +198,3 @@ export function CookieConsent() {
     </div>
   );
 }
-
-export { };
