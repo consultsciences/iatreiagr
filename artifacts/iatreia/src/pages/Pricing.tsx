@@ -40,10 +40,12 @@ const planGroups: PlanGroup[] = [
         name: "Free",
         price: "€0",
         period: "μία καταχώριση",
-        desc: "1 ενεργή αγγελία. Απαιτείται εγγραφή και επαλήθευση email.",
+        desc: "1 ενεργή αγγελία για 30 ημέρες. Απαιτείται εγγραφή — χωρίς πιστωτική κάρτα.",
         cta: "Εγγραφή & Δημοσίευση",
         features: [
           "1 ενεργή αγγελία",
+          "Ενεργή για 30 ημέρες",
+          "Χωρίς πιστωτική κάρτα",
           "Απαιτείται εγγραφή & επαλήθευση email",
           "Βασικό προφίλ",
           "Φόρμα ενδιαφέροντος",
@@ -52,8 +54,8 @@ const planGroups: PlanGroup[] = [
       {
         plan: "plus",
         name: "Plus",
-        price: "€19",
-        period: "/ έξτρα αγγελία",
+        price: "€2,99",
+        period: "/ αγγελία",
         desc: "Μία πληρωμένη αγγελία χωρίς μηνιαία συνδρομή.",
         cta: "Επιλέξτε Plus",
         features: [
@@ -66,12 +68,12 @@ const planGroups: PlanGroup[] = [
       {
         plan: "featured_boost",
         name: "Featured Boost",
-        price: "€29",
-        period: "/αγγελία",
-        desc: "Προβολή στην κορυφή της κατηγορίας για 7 ημέρες.",
+        price: "€9,99",
+        period: "/ αγγελία",
+        desc: "Προβολή στην κορυφή της κατηγορίας για 30 ημέρες.",
         cta: "Ενίσχυση αγγελίας",
         features: [
-          "Featured σήμανση 7 ημερών",
+          "Featured σήμανση 30 ημερών",
           "Top placement κατηγορίας",
           "Αυξημένη ορατότητα",
         ],
@@ -99,7 +101,7 @@ const planGroups: PlanGroup[] = [
       {
         plan: "starter",
         name: "Starter",
-        price: "€39",
+        price: "€9,99",
         period: "/μήνα",
         desc: "Ιδανικό για ιατρεία και starter καταχωρητές.",
         cta: "Επιλέξτε Starter",
@@ -121,7 +123,7 @@ const planGroups: PlanGroup[] = [
       {
         plan: "pro_broker",
         name: "Pro",
-        price: "€99",
+        price: "€19,99",
         period: "/μήνα",
         desc: "Για μεσίτες και ιδιοκτήτες με πολλαπλούς ιατρικούς χώρους.",
         cta: "Επιλέξτε Pro",
@@ -141,11 +143,11 @@ const planGroups: PlanGroup[] = [
     plans: [
       {
         plan: "pro_supplier",
-        name: "Pro",
-        price: "€149",
+        name: "Supplier",
+        price: "€39,99",
         period: "/μήνα",
         desc: "Για προμηθευτές εξοπλισμού με εκτεταμένο κατάλογο.",
-        cta: "Επιλέξτε Pro",
+        cta: "Επιλέξτε Supplier",
         features: [
           "15 ενεργές αγγελίες",
           "Ανεβάσματα brochure (PDF)",
@@ -160,9 +162,9 @@ const planGroups: PlanGroup[] = [
     audience: "Κλινικές, νοσοκομεία και εταιρείες που αναζητούν ιατρικό προσωπικό",
     plans: [
       {
-        plan: "job_single",
+        plan: "plus",
         name: "1 Αγγελία Εργασίας",
-        price: "€39",
+        price: "€2,99",
         period: "/ 30 ημέρες",
         desc: "Μία αγγελία εργασίας ενεργή για 30 ημέρες.",
         cta: "Δημοσίευση αγγελίας",
@@ -174,26 +176,26 @@ const planGroups: PlanGroup[] = [
       },
       {
         plan: "job_pack",
-        name: "5-Pack",
-        price: "€139",
+        name: "Supplier",
+        price: "€11,99",
         period: "",
         desc: "5 αγγελίες εργασίας με εκπτωτικό πακέτο.",
-        cta: "Αγορά 5-Pack",
+        cta: "Επιλέξτε Supplier",
         highlight: true,
         features: [
           "5 αγγελίες εργασίας",
-          "Εξοικονόμηση €56",
+          "Εξοικονόμηση 20%",
           "Credits χωρίς λήξη",
           "Email ειδοποιήσεις υποψηφίων",
         ],
       },
       {
         plan: "hiring_plan",
-        name: "Hiring Plan",
-        price: "€249",
+        name: "Supplier",
+        price: "€39,99",
         period: "/μήνα",
         desc: "Απεριόριστες αγγελίες εργασίας για ενεργές κλινικές.",
-        cta: "Επιλέξτε Hiring Plan",
+        cta: "Επιλέξτε Supplier",
         features: [
           "Απεριόριστες αγγελίες εργασίας",
           "Εταιρικό προφίλ εργοδότη",
@@ -211,12 +213,13 @@ const planGroups: PlanGroup[] = [
       {
         plan: "premium_profile",
         name: "Premium Profile",
-        price: "€99",
-        period: "/μήνα",
-        desc: "Εταιρικό premium προφίλ με φόρμα επικοινωνίας.",
+        price: "€49,99",
+        period: "/ 3 μήνες",
+        desc: "Εταιρικό premium προφίλ με φόρμα επικοινωνίας για 3 μήνες.",
         cta: "Επιλέξτε Premium Profile",
         features: [
           "Εταιρικό premium προφίλ",
+          "Προβολή 3 μηνών",
           "Featured σήμανση",
           "Φόρμα επικοινωνίας",
         ],
@@ -224,13 +227,14 @@ const planGroups: PlanGroup[] = [
       {
         plan: "featured_partner",
         name: "Featured Partner",
-        price: "€149",
-        period: "/μήνα",
-        desc: "Αφιερωμένη σελίδα με logo, website link και φόρμα επικοινωνίας.",
+        price: "€99,99",
+        period: "/ 3 μήνες",
+        desc: "Αφιερωμένη σελίδα με logo, website link και φόρμα επικοινωνίας για 3 μήνες.",
         cta: "Επιλέξτε Featured Partner",
         highlight: true,
         features: [
           "Αφιερωμένη σελίδα partner",
+          "Προβολή 3 μηνών",
           "Logo & website link",
           "Φόρμα επικοινωνίας",
           "Προβολή στο clinic-launch",
@@ -239,9 +243,9 @@ const planGroups: PlanGroup[] = [
       {
         plan: "sponsor",
         name: "Sponsor Package",
-        price: "€299+",
-        period: "/μήνα",
-        desc: "Sponsorships, banners και co-branding σε όλο το iatreia.gr.",
+        price: "€299",
+        period: "/ 3 μήνες",
+        desc: "Sponsorships, banners και co-branding σε όλο το iatreia.gr για 3 μήνες.",
         cta: "Επικοινωνία",
         isContact: true,
         features: [
@@ -453,7 +457,7 @@ const Pricing = () => {
             >
               {group.plans.map((p) => (
                 <PlanCard
-                  key={p.name}
+                  key={p.plan ?? p.name}
                   p={p}
                   loadingPlan={loadingPlan}
                   onPlanClick={handlePlanClick}
