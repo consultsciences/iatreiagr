@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startArticleScheduler } from "./lib/articleScheduler";
 import { runMigrations } from "stripe-replit-sync";
 import { getUncachableStripeClient, getStripeSync } from "./stripeClient";
 
@@ -77,6 +78,8 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 await initStripe();
+
+startArticleScheduler();
 
 app.listen(port, (err) => {
   if (err) {
