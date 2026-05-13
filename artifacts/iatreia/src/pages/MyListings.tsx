@@ -168,7 +168,7 @@ const MyListings = () => {
               <h1 className="text-3xl font-bold">Οι αγγελίες μου</h1>
               <p className="mt-1 text-muted-foreground">Διαχειριστείτε τις αγγελίες σας</p>
             </div>
-            <Button asChild disabled={planStatus !== null && planStatus.plan !== "enterprise" && planStatus.activeCount >= planStatus.limit}>
+            <Button asChild>
               <Link to="/post"><Plus className="mr-2 h-4 w-4" />Νέα αγγελία</Link>
             </Button>
           </div>

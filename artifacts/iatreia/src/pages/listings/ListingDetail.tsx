@@ -4,8 +4,6 @@ import { z } from "zod";
 import {
   ArrowLeft,
   MapPin,
-  Mail,
-  Phone,
   Loader2,
   Send,
   ShieldCheck,
@@ -269,27 +267,12 @@ const ListingDetail = () => {
                 </form>
               )}
 
-              {(listing.contact_email || listing.contact_phone) && (
+              {listing.website_url && (
                 <div className="mt-5 border-t pt-4 text-xs">
-                  <p className="mb-2 font-semibold uppercase tracking-wide text-muted-foreground">Άμεση επικοινωνία</p>
-                  {listing.contact_email && (
-                    <div className="flex items-center gap-2 text-foreground/90">
-                      <Mail className="h-3.5 w-3.5" />
-                      <a href={`mailto:${listing.contact_email}`} className="hover:underline">{listing.contact_email}</a>
-                    </div>
-                  )}
-                  {listing.contact_phone && (
-                    <div className="mt-1 flex items-center gap-2 text-foreground/90">
-                      <Phone className="h-3.5 w-3.5" />
-                      <a href={`tel:${listing.contact_phone}`} className="hover:underline">{listing.contact_phone}</a>
-                    </div>
-                  )}
-                  {listing.website_url && (
-                    <div className="mt-1 flex items-center gap-2 text-foreground/90">
-                      <Globe className="h-3.5 w-3.5" />
-                      <a href={listing.website_url} target="_blank" rel="noopener noreferrer" className="hover:underline truncate">{listing.website_url.replace(/^https?:\/\//, "")}</a>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-foreground/90">
+                    <Globe className="h-3.5 w-3.5" />
+                    <a href={listing.website_url} target="_blank" rel="noopener noreferrer" className="hover:underline truncate">{listing.website_url.replace(/^https?:\/\//, "")}</a>
+                  </div>
                 </div>
               )}
             </Card>

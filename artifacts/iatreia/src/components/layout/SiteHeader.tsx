@@ -38,7 +38,11 @@ export const SiteHeader = () => {
   }, [user, session]);
 
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      await signOut();
+    } catch {
+      // Clerk network error — continue with local redirect
+    }
     navigate("/");
   };
 
