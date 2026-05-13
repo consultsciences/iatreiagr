@@ -39,11 +39,10 @@ export const SiteHeader = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await signOut({ redirectUrl: `${BASE}/` });
     } catch {
-      // Clerk network error — continue with local redirect
+      navigate("/");
     }
-    navigate("/");
   };
 
   return (

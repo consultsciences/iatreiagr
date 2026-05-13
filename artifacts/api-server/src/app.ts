@@ -60,7 +60,11 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const clerkMw = clerkMiddleware();
+// Prefer VITE_CLERK_PUBLISHABLE_KEY (test key, reachable FAPI) over the live key
+// whose custom domain (clerk.iatreia.gr) may not have DNS propagated in dev.
+const clerkMw = clerkMiddleware({
+  publishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY,
+});
 
 // Scope Clerk middleware to /api only — prevents it from intercepting
 // non-API routes (e.g. health checks or dev frontend requests) and

@@ -28,10 +28,12 @@ if (!basePath) {
 export default defineConfig({
   base: basePath,
   define: {
-    // Prefer the Replit-managed CLERK_PUBLISHABLE_KEY (which is paired with CLERK_SECRET_KEY)
-    // over the stale VITE_CLERK_PUBLISHABLE_KEY that may be from a different instance.
+    // In dev, VITE_CLERK_PUBLISHABLE_KEY is the test key (pk_test_ → accounts.dev FAPI, reachable).
+    // CLERK_PUBLISHABLE_KEY is the live key (pk_live_ → clerk.iatreia.gr, DNS not yet propagated).
+    // Always prefer the VITE_ key so the browser and server both use the same reachable FAPI.
+    // In production the deployment system injects the live key into VITE_CLERK_PUBLISHABLE_KEY.
     "import.meta.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify(
-      process.env.CLERK_PUBLISHABLE_KEY ?? process.env.VITE_CLERK_PUBLISHABLE_KEY ?? "",
+      process.env.VITE_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY ?? "",
     ),
   },
   plugins: [
