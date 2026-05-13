@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { z } from "zod";
-import { getAuth } from "@clerk/express";
 import { db } from "@workspace/db";
 import { clinicSettingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -18,7 +17,7 @@ router.get("/api/clinics/settings", async (_req, res) => {
   try {
     const rows = await db.select().from(clinicSettingsTable);
     res.json({ settings: rows });
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: "Failed to fetch clinic settings" });
   }
 });
@@ -57,7 +56,7 @@ router.post("/api/admin/clinics/settings/:id", requireAdmin, async (req, res) =>
       })
       .returning();
     res.json({ setting: row });
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: "Failed to save clinic setting" });
   }
 });
@@ -73,7 +72,7 @@ router.delete("/api/admin/clinics/settings/:id", requireAdmin, async (req, res) 
       .delete(clinicSettingsTable)
       .where(eq(clinicSettingsTable.clinic_id, clinicId));
     res.json({ ok: true });
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: "Failed to delete clinic setting" });
   }
 });
@@ -84,7 +83,7 @@ router.post("/api/admin/listings/generate", requireAdmin, async (req, res) => {
     const { generateListings } = await import("../lib/listingGenerator");
     const inserted = await generateListings(Math.min(count, 10));
     res.json({ generated: inserted.length, listings: inserted });
-  } catch (err) {
+  } catch (_err) {
     res.status(500).json({ error: "Generation failed" });
   }
 });
