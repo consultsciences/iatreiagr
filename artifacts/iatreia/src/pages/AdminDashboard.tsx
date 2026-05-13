@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShieldCheck, ShieldOff, CheckCircle2, XCircle, Eye, EyeOff, ArrowLeft, Loader2, FileSearch, Search, ChevronLeft, ChevronRight, Clock, UserRound, Mail, Phone, Stethoscope, Package, Users, Crown, ShieldPlus, LogOut } from "lucide-react";
+import { ShieldCheck, ShieldOff, CheckCircle2, XCircle, ArrowLeft, Loader2, FileSearch, Search, ChevronLeft, ChevronRight, Clock, UserRound, Mail, Phone, Stethoscope, Package, Users, Crown, ShieldPlus, LogOut } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -21,98 +21,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { privateClinics } from "@/data/privateClinics";
 import { cn } from "@/lib/utils";
-import type { DoctorProfile, ClinicClaim, AuditLogEntry } from "@workspace/types";
+import type { ClinicClaim, AuditLogEntry } from "@workspace/types";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
 const PAGE_SIZE = 20;
-
-const REQUIRED_FIELDS: { key: keyof DoctorProfile; label: string }[] = [
-  { key: "full_name", label: "Ονοματεπώνυμο" },
-  { key: "specialty", label: "Ειδικότητα" },
-  { key: "city", label: "Πόλη" },
-  { key: "address", label: "Διεύθυνση" },
-  { key: "phone", label: "Τηλέφωνο" },
-  { key: "email", label: "Email" },
-  { key: "bio", label: "Βιογραφικό" },
-  { key: "photo_url", label: "Φωτογραφία" },
-];
-
-const getCompleteness = (d: DoctorProfile) => {
-  const missing = REQUIRED_FIELDS.filter((f) => {
-    const v = d[f.key];
-    return v === null || v === undefined || String(v).trim() === "";
-  });
-  const total = REQUIRED_FIELDS.length;
-  const filled = total - missing.length;
-  const percent = Math.round((filled / total) * 100);
-  return { percent, filled, total, missing };
-};
-
-const completenessTone = (percent: number) => {
-  if (percent === 100) return "text-primary";
-  if (percent >= 60) return "text-muted-foreground";
-  return "text-destructive";
-};
-
-const CompletenessIndicator = ({
-  doctor,
-  compact = false,
-  showMissing = false,
-}: {
-  doctor: DoctorProfile;
-  compact?: boolean;
-  showMissing?: boolean;
-}) => {
-  const { percent, filled, total, missing } = getCompleteness(doctor);
-  const tone = completenessTone(percent);
-  if (compact) {
-    return (
-      <div
-        className={`${showMissing ? "w-48" : "w-28"} space-y-1`}
-        title={missing.length ? `Λείπουν: ${missing.map((m) => m.label).join(", ")}` : "Πλήρες"}
-      >
-        <div className="flex items-center justify-between text-xs">
-          <span className={`font-medium ${tone}`}>{percent}%</span>
-          <span className="text-muted-foreground">{filled}/{total}</span>
-        </div>
-        <Progress value={percent} className="h-1.5" />
-        {showMissing && missing.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {missing.map((m) => (
-              <Badge
-                key={m.key as string}
-                variant="destructive"
-                className="px-1.5 py-0 text-[10px] font-normal leading-4"
-              >
-                {m.label}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className={`text-sm font-semibold ${tone}`}>{percent}% συμπληρωμένο</span>
-        <span className="text-xs text-muted-foreground">{filled}/{total} πεδία</span>
-      </div>
-      <Progress value={percent} className="h-2" />
-      {missing.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {missing.map((m) => (
-            <Badge key={m.key as string} variant="destructive" className="font-normal">
-              Λείπει: {m.label}
-            </Badge>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs text-primary">Όλα τα απαιτούμενα πεδία είναι συμπληρωμένα.</p>
-      )}
-    </div>
-  );
-};
 
 const FALLBACK_ERROR_DETAIL = "Άγνωστο σφάλμα — δεν παρασχέθηκε λεπτομέρεια από τον server.";
 
@@ -220,16 +132,6 @@ const AdminDashboard = () => {
   const { session } = useClerk();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [pendingRows, setPendingRows] = useState<DoctorProfile[]>([]);
-  const [verifiedRows, setVerifiedRows] = useState<DoctorProfile[]>([]);
-  const [pendingTotal, setPendingTotal] = useState(0);
-  const [verifiedTotal, setVerifiedTotal] = useState(0);
-  const [pendingPage, setPendingPage] = useState(0);
-  const [verifiedPage, setVerifiedPage] = useState(0);
-  const [pendingLoading, setPendingLoading] = useState(true);
-  const [verifiedLoading, setVerifiedLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
   const [claims, setClaims] = useState<ClinicClaim[]>([]);
   const [claimsLoading, setClaimsLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -265,10 +167,7 @@ const AdminDashboard = () => {
   const [listingsSearch, setListingsSearch] = useState("");
   const [listingsCategoryFilter, setListingsCategoryFilter] = useState("");
   const [selectedListing, setSelectedListing] = useState<PendingListing | null>(null);
-  const [selectedDoctor, setSelectedDoctor] = useState<DoctorProfile | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<ClinicClaim | null>(null);
-  const [lowCompletenessOnly, setLowCompletenessOnly] = useState(false);
-  const [sortByCompleteness, setSortByCompleteness] = useState(true);
   type ClaimStatusFilter = "pending" | "approved" | "all";
   const CLAIM_FILTER_KEY = "admin.claimStatusFilter";
   const [claimStatusFilter, setClaimStatusFilter] = useState<ClaimStatusFilter>(() => {
@@ -389,18 +288,6 @@ const AdminDashboard = () => {
     };
   }, [auditClaimSearchInput]);
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPendingPage(0);
-      setVerifiedPage(0);
-    }, 300);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [searchInput]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -419,41 +306,6 @@ const AdminDashboard = () => {
     })();
   }, [user, authLoading, navigate, session]);
 
-  const loadDoctors = useCallback(
-    async (verified: boolean, page: number) => {
-      const setRows = verified ? setVerifiedRows : setPendingRows;
-      const setTotal = verified ? setVerifiedTotal : setPendingTotal;
-      const setLoading = verified ? setVerifiedLoading : setPendingLoading;
-      setLoading(true);
-      try {
-        const token = await session?.getToken();
-        const params = new URLSearchParams({
-          verified: String(verified),
-          limit: String(PAGE_SIZE),
-          offset: String(page * PAGE_SIZE),
-        });
-        if (search) params.set("search", search);
-        const res = await fetch(`${BASE}/api/admin/doctors?${params}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { doctors, total } = await res.json();
-        setRows(doctors ?? []);
-        setTotal(total ?? 0);
-      } catch (err: unknown) {
-        toast({
-          title: "Σφάλμα φόρτωσης",
-          description: `Δεν ήταν δυνατή η φόρτωση των ${verified ? "πιστοποιημένων" : "εκκρεμών"} ιατρών. ${err instanceof Error ? err.message : ""}`,
-          variant: "destructive",
-        });
-        setRows([]);
-        setTotal(0);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [search, session],
-  );
 
   const loadClaims = useCallback(async () => {
     setClaimsLoading(true);
@@ -636,10 +488,6 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (isAdmin) loadDoctors(true, verifiedPage);
-  }, [isAdmin, verifiedPage, loadDoctors]);
-
-  useEffect(() => {
     if (isAdmin) loadClaims();
   }, [isAdmin, loadClaims]);
 
@@ -658,70 +506,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (isAdmin) loadAdminUsers(adminUsersPage);
   }, [isAdmin, adminUsersPage, loadAdminUsers]);
-
-  const updateDoctor = async (id: string, patch: Partial<DoctorProfile>) => {
-    const target =
-      pendingRows.find((d) => d.id === id) ||
-      verifiedRows.find((d) => d.id === id) ||
-      selectedDoctor;
-    const doctorName = target?.full_name ?? "ιατρού";
-    let actionLabel = "Ενημέρωση";
-    if (patch.verified === true) actionLabel = "Πιστοποίηση";
-    else if (patch.verified === false) actionLabel = "Ανάκληση πιστοποίησης";
-    else if (patch.is_published === true) actionLabel = "Δημοσίευση";
-    else if (patch.is_published === false) actionLabel = "Απόκρυψη";
-
-    setBusyId(id);
-    let updateError: string | null = null;
-    try {
-      const token = await session?.getToken();
-      const res = await fetch(`${BASE}/api/admin/doctors/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(patch),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        updateError = err?.error || `HTTP ${res.status}`;
-      }
-    } catch (err: unknown) {
-      updateError = err instanceof Error ? err.message : "Network error";
-    }
-    setBusyId(null);
-    if (updateError) {
-      toast({
-        title: `Δεν ήταν δυνατή η ενέργεια: ${actionLabel}`,
-        description: `Το προφίλ του ${doctorName} δεν ενημερώθηκε. Δοκιμάστε ξανά σε λίγο. Λεπτομέρειες: ${updateError}`,
-        variant: "destructive",
-      });
-      return;
-    }
-    toast({
-      title: `${actionLabel}: επιτυχής ενημέρωση`,
-      description: `Το προφίλ του ${doctorName} ενημερώθηκε με επιτυχία.`,
-    });
-    if (patch.verified !== undefined) {
-      // Row moves between pending/verified tables → refetch both
-      loadDoctors(false, pendingPage);
-      loadDoctors(true, verifiedPage);
-    } else {
-      setPendingRows((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-      setVerifiedRows((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-    }
-    setSelectedDoctor((prev: DoctorProfile | null) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
-  };
-
-  const toggleVerified = (d: DoctorProfile) =>
-    updateDoctor(d.id, {
-      verified: !d.verified,
-      verified_at: !d.verified ? new Date().toISOString() : null,
-    });
-
-  const togglePublished = (d: DoctorProfile) =>
-    updateDoctor(d.id, { is_published: !d.is_published });
 
   const refetchClaim = async (id: string, attempt = 0): Promise<void> => {
     try {
@@ -892,16 +676,6 @@ const AdminDashboard = () => {
     );
   }
 
-  const lowFilter = (d: DoctorProfile) => !lowCompletenessOnly || getCompleteness(d).percent < 60;
-  const sortFn = (a: DoctorProfile, b: DoctorProfile) =>
-    getCompleteness(a).percent - getCompleteness(b).percent;
-  const shouldSort = lowCompletenessOnly && sortByCompleteness;
-  const applySort = (list: DoctorProfile[]) => (shouldSort ? [...list].sort(sortFn) : list);
-  const pendingDoctors = applySort(pendingRows.filter(lowFilter));
-  const verifiedDoctors = applySort(verifiedRows.filter(lowFilter));
-  const lowCount =
-    pendingRows.filter((d) => getCompleteness(d).percent < 60).length +
-    verifiedRows.filter((d) => getCompleteness(d).percent < 60).length;
   const pendingClaims = claims.filter((c) => c.status === "pending");
   const approvedClaims = claims.filter((c) => c.status === "approved");
   const decidedClaims = claims.filter((c) => c.status !== "pending");
@@ -1015,8 +789,6 @@ const AdminDashboard = () => {
       setAuditExportProgress(null);
     }
   };
-  const pendingPageCount = Math.max(1, Math.ceil(pendingTotal / PAGE_SIZE));
-  const verifiedPageCount = Math.max(1, Math.ceil(verifiedTotal / PAGE_SIZE));
   const listingsPageCount = Math.max(1, Math.ceil(listingsTotal / PAGE_SIZE));
 
   return (
@@ -1047,15 +819,12 @@ const AdminDashboard = () => {
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         <div className="grid gap-4 sm:grid-cols-4">
-          <StatCard label="Εκκρεμή προφίλ" value={pendingTotal} />
-          <StatCard label="Πιστοποιημένα" value={verifiedTotal} />
           <StatCard label="Εκκρεμείς διεκδικήσεις" value={pendingClaims.length} />
           <StatCard label="Εκκρεμείς αγγελίες" value={pendingListings.length} />
         </div>
 
-        <Tabs defaultValue="doctors" className="w-full">
+        <Tabs defaultValue="listings" className="w-full">
           <TabsList>
-            <TabsTrigger value="doctors">Ιατρικά προφίλ</TabsTrigger>
             <TabsTrigger value="claims">Διεκδικήσεις κλινικών</TabsTrigger>
             <TabsTrigger value="listings">
               <Package className="h-4 w-4 mr-1.5" />
@@ -1072,93 +841,6 @@ const AdminDashboard = () => {
               Χρήστες
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="doctors" className="space-y-6">
-            <div className="space-y-3 rounded-lg border bg-background px-4 py-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="doctor-search" className="text-sm font-medium">
-                  Αναζήτηση ιατρών
-                </Label>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="doctor-search"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Όνομα, email, ειδικότητα ή πόλη…"
-                    className="pl-9"
-                  />
-                </div>
-                {search && (
-                  <p className="text-xs text-muted-foreground">
-                    Αποτελέσματα για «{search}» — {pendingTotal} εκκρεμή, {verifiedTotal} πιστοποιημένα.
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center justify-between border-t pt-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="low-completeness" className="text-sm font-medium">
-                    Μόνο ελλιπή προφίλ (&lt; 60%) στην τρέχουσα σελίδα
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {lowCount} προφίλ κάτω από το όριο πληρότητας στις φορτωμένες σελίδες.
-                  </p>
-                </div>
-                <Switch
-                  id="low-completeness"
-                  checked={lowCompletenessOnly}
-                  onCheckedChange={setLowCompletenessOnly}
-                />
-              </div>
-              {lowCompletenessOnly && (
-                <div className="flex items-center justify-between border-t pt-3">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="sort-completeness" className="text-sm font-medium">
-                      Ταξινόμηση κατά πληρότητα (αύξουσα)
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Εμφάνιση πρώτα των προφίλ με τη χαμηλότερη πληρότητα.
-                    </p>
-                  </div>
-                  <Switch
-                    id="sort-completeness"
-                    checked={sortByCompleteness}
-                    onCheckedChange={setSortByCompleteness}
-                  />
-                </div>
-              )}
-            </div>
-            <DoctorsTable
-              title="Εκκρεμή για έγκριση"
-              description="Νέα προφίλ που δεν έχουν ακόμη πιστοποιηθεί."
-              rows={pendingDoctors}
-              loading={pendingLoading}
-              busyId={busyId}
-              onToggleVerified={toggleVerified}
-              onTogglePublished={togglePublished}
-              onView={setSelectedDoctor}
-              showMissing={lowCompletenessOnly}
-              page={pendingPage}
-              pageCount={pendingPageCount}
-              total={pendingTotal}
-              onPageChange={setPendingPage}
-            />
-            <DoctorsTable
-              title="Πιστοποιημένα προφίλ"
-              description="Προφίλ με ενεργό σήμα Verified."
-              rows={verifiedDoctors}
-              loading={verifiedLoading}
-              busyId={busyId}
-              onToggleVerified={toggleVerified}
-              onTogglePublished={togglePublished}
-              onView={setSelectedDoctor}
-              showMissing={lowCompletenessOnly}
-              page={verifiedPage}
-              pageCount={verifiedPageCount}
-              total={verifiedTotal}
-              onPageChange={setVerifiedPage}
-            />
-          </TabsContent>
 
           <TabsContent value="claims" className="space-y-6">
             <div className="flex flex-col gap-2 rounded-lg border bg-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1876,13 +1558,6 @@ const AdminDashboard = () => {
         </Tabs>
       </main>
 
-      <DoctorDetailsSheet
-        doctor={selectedDoctor}
-        busyId={busyId}
-        onOpenChange={(open) => !open && setSelectedDoctor(null)}
-        onToggleVerified={toggleVerified}
-        onTogglePublished={togglePublished}
-      />
       <ClaimDetailsSheet
         claim={selectedClaim}
         busyId={busyId}
@@ -1907,207 +1582,6 @@ const StatCard = ({ label, value }: { label: string; value: number }) => (
     <CardContent className="p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="text-3xl font-semibold mt-1">{value}</p>
-    </CardContent>
-  </Card>
-);
-
-const DoctorsTable = ({
-  title,
-  description,
-  rows,
-  loading,
-  busyId,
-  onToggleVerified,
-  onTogglePublished,
-  onView,
-  showMissing = false,
-  page,
-  pageCount,
-  total,
-  onPageChange,
-}: {
-  title: string;
-  description?: string;
-  rows: DoctorProfile[];
-  loading: boolean;
-  busyId: string | null;
-  onToggleVerified: (d: DoctorProfile) => void;
-  onTogglePublished: (d: DoctorProfile) => void;
-  onView: (d: DoctorProfile) => void;
-  showMissing?: boolean;
-  page: number;
-  pageCount: number;
-  total: number;
-  onPageChange: (next: number) => void;
-}) => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="text-lg">{title}</CardTitle>
-      {description && <CardDescription>{description}</CardDescription>}
-    </CardHeader>
-    <CardContent>
-      {loading && rows.length === 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Όνομα</TableHead>
-              <TableHead>Ειδικότητα</TableHead>
-              <TableHead>Πόλη</TableHead>
-              <TableHead>Πληρότητα</TableHead>
-              <TableHead>Πλάνο</TableHead>
-              <TableHead>Κατάσταση</TableHead>
-              <TableHead className="text-right">Ενέργειες</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <TableRow key={`sk-${i}`}>
-                <TableCell>
-                  <Skeleton className="h-4 w-32 mb-1.5" />
-                  <Skeleton className="h-3 w-40" />
-                </TableCell>
-                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                <TableCell>
-                  <div className="w-28 space-y-1">
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-1.5 w-full" />
-                  </div>
-                </TableCell>
-                <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-2">
-                    <Skeleton className="h-8 w-24" />
-                    <Skeleton className="h-8 w-28" />
-                    <Skeleton className="h-8 w-8" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Δεν υπάρχουν εγγραφές.</p>
-      ) : (
-        <div
-          className={cn(
-            "relative transition-opacity duration-200",
-            loading && "opacity-60 pointer-events-none",
-          )}
-          aria-busy={loading}
-        >
-          {loading && (
-            <div className="absolute right-2 top-2 z-10">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Όνομα</TableHead>
-                <TableHead>Ειδικότητα</TableHead>
-                <TableHead>Πόλη</TableHead>
-                <TableHead>Πληρότητα</TableHead>
-                <TableHead>Πλάνο</TableHead>
-                <TableHead>Κατάσταση</TableHead>
-                <TableHead className="text-right">Ενέργειες</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((d) => (
-                <TableRow key={d.id}>
-                  <TableCell>
-                    <div className="font-medium">{d.full_name}</div>
-                    <div className="text-xs text-muted-foreground">{d.email ?? "—"}</div>
-                  </TableCell>
-                  <TableCell>{d.specialty ?? "—"}</TableCell>
-                  <TableCell>{d.city ?? "—"}</TableCell>
-                  <TableCell>
-                    <CompletenessIndicator doctor={d} compact showMissing={showMissing} />
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={d.subscription_tier === "free" ? "outline" : "default"}>
-                      {d.subscription_tier}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 flex-wrap">
-                      {d.verified && <Badge variant="default">Verified</Badge>}
-                      {d.is_published ? (
-                        <Badge variant="secondary">Published</Badge>
-                      ) : (
-                        <Badge variant="outline">Hidden</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => onView(d)}>
-                        <FileSearch className="h-4 w-4 mr-1" /> Λεπτομέρειες
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={d.verified ? "outline" : "default"}
-                        disabled={busyId === d.id}
-                        onClick={() => onToggleVerified(d)}
-                      >
-                        {d.verified ? (
-                          <><ShieldOff className="h-4 w-4 mr-1" /> Αφαίρεση</>
-                        ) : (
-                          <><ShieldCheck className="h-4 w-4 mr-1" /> Πιστοποίηση</>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busyId === d.id}
-                        onClick={() => onTogglePublished(d)}
-                      >
-                        {d.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-      <div className="flex items-center justify-between gap-3 border-t pt-3 mt-3 text-xs text-muted-foreground min-h-[2.25rem]">
-        {loading && rows.length === 0 ? (
-          <Skeleton className="h-4 w-48" />
-        ) : total > 0 ? (
-          <>
-            <span>
-              Σελίδα {page + 1} από {pageCount} · {total} συνολικά
-            </span>
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page === 0 || loading}
-                onClick={() => onPageChange(Math.max(0, page - 1))}
-              >
-                <ChevronLeft className="h-4 w-4" /> Προηγ.
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page + 1 >= pageCount || loading}
-                onClick={() => onPageChange(page + 1)}
-              >
-                Επόμ. <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </>
-        ) : null}
-      </div>
     </CardContent>
   </Card>
 );
@@ -2258,127 +1732,6 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
   </div>
 );
 
-const DoctorDetailsSheet = ({
-  doctor,
-  busyId,
-  onOpenChange,
-  onToggleVerified,
-  onTogglePublished,
-}: {
-  doctor: DoctorProfile | null;
-  busyId: string | null;
-  onOpenChange: (open: boolean) => void;
-  onToggleVerified: (d: DoctorProfile) => void;
-  onTogglePublished: (d: DoctorProfile) => void;
-}) => (
-  <Sheet open={!!doctor} onOpenChange={onOpenChange}>
-    <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-      {doctor && (
-        <>
-          <SheetHeader className="text-left">
-            <SheetTitle>{doctor.full_name}</SheetTitle>
-            <SheetDescription>
-              {doctor.specialty ?? "Χωρίς ειδικότητα"} · {doctor.city ?? "—"}
-            </SheetDescription>
-            <div className="flex flex-wrap gap-1.5 pt-2">
-              {doctor.verified && <Badge>Verified</Badge>}
-              <Badge variant={doctor.is_published ? "secondary" : "outline"}>
-                {doctor.is_published ? "Published" : "Hidden"}
-              </Badge>
-              <Badge variant={doctor.subscription_tier === "free" ? "outline" : "default"}>
-                {doctor.subscription_tier}
-              </Badge>
-            </div>
-          </SheetHeader>
-
-          <Separator className="my-4" />
-
-          <div className="rounded-md border bg-muted/30 p-3">
-            <CompletenessIndicator doctor={doctor} />
-          </div>
-
-          <Separator className="my-4" />
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Email" value={doctor.email} />
-              <Field label="Τηλέφωνο" value={doctor.phone} />
-              <Field label="Πόλη" value={doctor.city} />
-              <Field label="Διεύθυνση" value={doctor.address} />
-              <Field label="Κλινική (id)" value={doctor.clinic_id} />
-              <Field
-                label="Δημιουργία"
-                value={new Date(doctor.created_at).toLocaleDateString("el-GR")}
-              />
-              <Field
-                label="Ολοκλήρωση onboarding"
-                value={
-                  doctor.onboarding_completed_at
-                    ? new Date(doctor.onboarding_completed_at).toLocaleDateString("el-GR")
-                    : null
-                }
-              />
-              <Field
-                label="Πιστοποίηση"
-                value={
-                  doctor.verified_at
-                    ? new Date(doctor.verified_at).toLocaleDateString("el-GR")
-                    : null
-                }
-              />
-            </div>
-
-            <Field label="Βιογραφικό" value={<p className="whitespace-pre-wrap">{doctor.bio}</p>} />
-
-            {doctor.photo_url && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Φωτογραφία</p>
-                <img
-                  src={doctor.photo_url}
-                  alt={doctor.full_name}
-                  className="h-32 w-32 rounded-md object-cover border"
-                />
-              </div>
-            )}
-
-            <Field
-              label="User ID"
-              value={<code className="text-xs">{doctor.user_id}</code>}
-            />
-          </div>
-
-          <SheetFooter className="mt-6 flex-col gap-2 sm:flex-row">
-            <Button
-              className="flex-1"
-              variant={doctor.verified ? "outline" : "default"}
-              disabled={busyId === doctor.id}
-              onClick={() => onToggleVerified(doctor)}
-            >
-              {doctor.verified ? (
-                <><ShieldOff className="h-4 w-4 mr-1" /> Αφαίρεση Verified</>
-              ) : (
-                <><ShieldCheck className="h-4 w-4 mr-1" /> Πιστοποίηση</>
-              )}
-            </Button>
-            <Button
-              className="flex-1"
-              variant="outline"
-              disabled={busyId === doctor.id}
-              onClick={() => onTogglePublished(doctor)}
-            >
-              {doctor.is_published ? (
-                <><EyeOff className="h-4 w-4 mr-1" /> Απόκρυψη</>
-              ) : (
-                <><Eye className="h-4 w-4 mr-1" /> Δημοσίευση</>
-              )}
-            </Button>
-          </SheetFooter>
-        </>
-      )}
-    </SheetContent>
-  </Sheet>
-);
-
 type DoctorLite = {
   user_id: string;
   full_name: string;
@@ -2503,7 +1856,6 @@ const ClaimDetailsSheet = ({
 
             <Separator className="my-4" />
 
-            {/* Doctor info */}
             <div className="rounded-md border bg-muted/30 p-3 space-y-2">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <UserRound className="h-3.5 w-3.5" /> Ιατρός που υπέβαλε
@@ -2560,7 +1912,6 @@ const ClaimDetailsSheet = ({
 
             <Separator className="my-4" />
 
-            {/* Timeline */}
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Χρονολόγιο

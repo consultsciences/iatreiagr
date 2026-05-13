@@ -94,7 +94,7 @@ const IndexEn = () => {
             {user ? (
               <>
                 <Button asChild variant="ghost" className="hidden sm:inline-flex">
-                  <Link to="/bookings"><UserIcon className="mr-1.5 h-4 w-4" /> My bookings</Link>
+                  <Link to="/my-listings"><UserIcon className="mr-1.5 h-4 w-4" /> My listings</Link>
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => signOut()} title="Sign out">
                   <LogOut className="h-4 w-4" />
@@ -286,7 +286,7 @@ const IndexEn = () => {
                 <Link to="/medical-tourism#quote">Request my free quote <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link to="/doctors/auth"><UserPlus className="mr-2 h-4 w-4" /> I'm a doctor — join</Link>
+                <Link to="/contact"><UserPlus className="mr-2 h-4 w-4" /> Partner with us</Link>
               </Button>
             </div>
           </Card>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, Plus, ShieldCheck, LogOut, Calendar } from "lucide-react";
+import { Menu, X, Plus, ShieldCheck, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
@@ -76,11 +76,6 @@ export const SiteHeader = () => {
                   </Link>
                 </Button>
               )}
-              <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
-                <Link to="/bookings">
-                  <Calendar className="mr-1.5 h-4 w-4" /> Ραντεβού
-                </Link>
-              </Button>
               <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={handleSignOut}>
                 <LogOut className="mr-1.5 h-4 w-4" /> Αποσύνδεση
               </Button>
@@ -133,9 +128,6 @@ export const SiteHeader = () => {
                     <ShieldCheck className="mr-2 h-4 w-4" /> Διαχείριση
                   </Link>
                 )}
-                <Link to="/bookings" onClick={() => setOpen(false)} className="rounded-md px-3 py-2.5 text-sm font-medium text-foreground/80">
-                  Ραντεβού
-                </Link>
                 <button onClick={() => { setOpen(false); handleSignOut(); }} className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-foreground/80">
                   Αποσύνδεση
                 </button>

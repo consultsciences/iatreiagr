@@ -7,7 +7,7 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { isSignedIn, isLoaded } = useUser();
-  const redirectTo = params.get("redirect") || "/bookings";
+  const redirectTo = params.get("redirect") || "/my-listings";
   const tab = params.get("tab") === "signup" ? "signup" : "signin";
 
   const [termsAccepted, setTermsAccepted] = useState(false);

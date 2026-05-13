@@ -17,11 +17,6 @@ import AuthPage from "./pages/Auth.tsx";
 import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
-import Bookings from "./pages/Bookings.tsx";
-import DoctorAuth from "./pages/DoctorAuth.tsx";
-import DoctorDashboard from "./pages/DoctorDashboard.tsx";
-import DoctorOnboarding from "./pages/DoctorOnboarding.tsx";
-import DoctorProfile from "./pages/DoctorProfile.tsx";
 import Search from "./pages/Search.tsx";
 import Articles from "./pages/Articles.tsx";
 import ArticleDetail from "./pages/ArticleDetail.tsx";
@@ -115,17 +110,12 @@ const App = () => (
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/auth/*" element={<AuthPage />} />
-              <Route path="/bookings" element={<Bookings />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/post" element={<Post />} />
               <Route path="/my-listings" element={<MyListings />} />
               <Route path="/advertise" element={<PlacementOrder />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/doctors/auth/*" element={<DoctorAuth />} />
-              <Route path="/doctors/dashboard" element={<DoctorDashboard />} />
-              <Route path="/doctors/onboarding" element={<DoctorOnboarding />} />
-              <Route path="/doctors/:userId" element={<DoctorProfile />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/listings-policy" element={<ListingsPolicy />} />
