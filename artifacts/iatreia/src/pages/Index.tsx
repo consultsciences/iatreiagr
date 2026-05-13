@@ -69,6 +69,110 @@ function formatCount(n: number, suffix: string): string {
   return `${n.toLocaleString("el-GR")} ${suffix}`;
 }
 
+const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+
+type NewsArticle = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  read_time: string;
+  created_at: string;
+  image_url: string | null;
+};
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("el-GR", { day: "numeric", month: "short", year: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+const NewsPreview = () => {
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/articles?limit=4`)
+      .then((r) => r.json())
+      .then((d: { articles: NewsArticle[] }) => setArticles(d.articles.slice(0, 4)))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (!loading && articles.length === 0) return null;
+
+  return (
+    <section className="py-16 lg:py-20">
+      <div className="container mx-auto px-4">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <Badge variant="secondary" className="mb-3">
+              <Sparkles className="mr-1 h-3 w-3" /> AI Νέα Υγείας
+            </Badge>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Τελευταία άρθρα &amp; νέα
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Επίκαιρα άρθρα για επαγγελματίες υγείας — δημιουργημένα αυτόματα από AI.
+            </p>
+          </div>
+          <Button asChild variant="ghost" className="hidden shrink-0 sm:inline-flex">
+            <Link to="/articles">Όλα τα άρθρα <ArrowRight className="ml-1 h-4 w-4" /></Link>
+          </Button>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {articles.map((a) => (
+              <Link key={a.id} to={`/articles/${a.slug}`}>
+                <Card className="group h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)]">
+                  <div className="aspect-[16/10] overflow-hidden bg-secondary">
+                    {a.image_url ? (
+                      <img
+                        src={a.image_url}
+                        alt={a.title}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <Sparkles className="h-8 w-8 text-muted-foreground/30" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <Badge variant="secondary" className="mb-2 bg-accent text-accent-foreground hover:bg-accent text-xs">
+                      {a.category}
+                    </Badge>
+                    <h3 className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary">
+                      {a.title}
+                    </h3>
+                    <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">{a.excerpt}</p>
+                    <p className="mt-3 text-xs text-muted-foreground/70">{formatDate(a.created_at)}</p>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-6 text-center sm:hidden">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/articles">Όλα τα άρθρα <ArrowRight className="ml-1 h-4 w-4" /></Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const [heroQ, setHeroQ] = useState("");
@@ -339,6 +443,9 @@ const Index = () => {
           </Card>
         </div>
       </section>
+
+      {/* AI News Preview */}
+      <NewsPreview />
 
       {/* Partners CTA */}
       <section className="border-y bg-secondary/30 py-12">

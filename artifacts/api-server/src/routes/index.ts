@@ -8,6 +8,7 @@ import inquiriesRouter from "./inquiries";
 import subscriptionsRouter from "./subscriptions";
 import stripeRouter from "./stripe";
 import placementsRouter from "./placements";
+import articlesRouter from "./articles";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(inquiriesRouter);
 router.use(subscriptionsRouter);
 router.use(stripeRouter);
 router.use(placementsRouter);
+router.use(articlesRouter);
 
 export default router;
