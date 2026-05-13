@@ -447,6 +447,39 @@ const Index = () => {
       {/* AI News Preview */}
       <NewsPreview />
 
+      {/* Sponsor strip */}
+      <section className="border-t py-10">
+        <div className="container mx-auto px-4">
+          <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Χορηγοί & Συνεργάτες
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            {[
+              { name: "Eurobank", logo: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=120&h=48&fit=crop&q=60", url: "/services" },
+              { name: "Alpha Leasing", logo: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=120&h=48&fit=crop&q=60", url: "/services" },
+              { name: "MedLaw Partners", logo: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=120&h=48&fit=crop&q=60", url: "/services" },
+              { name: "MediSurg AE", logo: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=120&h=48&fit=crop&q=60", url: "/supplies" },
+              { name: "MedSpace Arch.", logo: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=120&h=48&fit=crop&q=60", url: "/services" },
+            ].map((s) => (
+              <Link
+                key={s.name}
+                to={s.url}
+                className="group flex h-14 w-32 items-center justify-center overflow-hidden rounded-lg border bg-background px-3 opacity-60 grayscale transition hover:opacity-100 hover:grayscale-0"
+                title={s.name}
+              >
+                <img src={s.logo} alt={s.name} className="h-full w-full object-cover" />
+              </Link>
+            ))}
+            <Link
+              to="/pricing"
+              className="flex h-14 w-32 items-center justify-center rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 text-center text-xs font-medium text-primary transition hover:bg-primary/10"
+            >
+              + Γίνετε Χορηγός
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Partners CTA */}
       <section className="border-y bg-secondary/30 py-12">
         <div className="container mx-auto px-4 text-center">

@@ -2,6 +2,7 @@ import type Stripe from 'stripe';
 import { getStripeSync, constructWebhookEvent, getUncachableStripeClient } from './stripeClient';
 import { db, userSubscriptionsTable, listingsTable } from '@workspace/db';
 import { eq } from 'drizzle-orm';
+import { notifySellerOfListingStatusChange } from './lib/listingEmail';
 
 const VALID_PLANS = new Set(['free', 'starter', 'professional', 'premium', 'enterprise']);
 
@@ -53,11 +54,24 @@ async function getPlanFromSubscription(
 }
 
 async function publishPlacementListing(listingId: string): Promise<void> {
+  const [row] = await db
+    .select({ user_id: listingsTable.user_id, title: listingsTable.title })
+    .from(listingsTable)
+    .where(eq(listingsTable.id, listingId))
+    .limit(1);
+
   await db
     .update(listingsTable)
     .set({ status: 'published', payment_status: 'paid', featured: true })
     .where(eq(listingsTable.id, listingId));
+
   console.log(`[webhook] Placement listing published: ${listingId}`);
+
+  if (row?.user_id) {
+    notifySellerOfListingStatusChange(row.user_id, row.title, 'published').catch((err) =>
+      console.error('[webhook] Failed to send placement email:', err),
+    );
+  }
 }
 
 export class WebhookHandlers {

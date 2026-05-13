@@ -38,7 +38,15 @@ import ListingsPolicy from "./pages/ListingsPolicy.tsx";
 import Report from "./pages/Report.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
+import { useEffect } from "react";
+import { initClinicPremium } from "@/data/clinicPremium";
+
 const queryClient = new QueryClient();
+
+function AppInit() {
+  useEffect(() => { initClinicPremium(); }, []);
+  return null;
+}
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -85,6 +93,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <AppInit />
             <CookieConsent />
             <Routes>
               <Route path="/" element={<Index />} />

@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useClerk } from "@clerk/clerk-react";
 import { toast } from "@/hooks/use-toast";
 import { privateClinics } from "@/data/privateClinics";
 import {
@@ -57,6 +58,7 @@ function usePremiumVersion() {
 
 const ClinicsAdmin = () => {
   usePremiumVersion();
+  const { session } = useClerk();
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -90,16 +92,17 @@ const ClinicsAdmin = () => {
     setBadgeHidden(info?.badgeHidden ?? false);
   }, [selected]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selected) return;
+    const token = (await session?.getToken()) ?? "";
     if (tier === "free") {
-      setClinicPremium(selected.id, null);
+      await setClinicPremium(selected.id, null, token);
     } else {
-      setClinicPremium(selected.id, {
+      await setClinicPremium(selected.id, {
         tier,
         tagline: tagline.trim() || undefined,
         badgeHidden: badgeHidden || undefined,
-      });
+      }, token);
     }
     toast({
       title: "Αποθηκεύτηκε",
@@ -107,9 +110,10 @@ const ClinicsAdmin = () => {
     });
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!selected) return;
-    resetClinicPremium(selected.id);
+    const token = (await session?.getToken()) ?? "";
+    await resetClinicPremium(selected.id, token);
     setTier(getClinicTier(selected.id));
     const info = getClinicPremium(selected.id);
     setTagline(info?.tagline ?? "");

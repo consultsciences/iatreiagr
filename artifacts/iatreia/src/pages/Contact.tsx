@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { Card } from "@/components/ui/card";
@@ -8,11 +8,41 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import { getApiBase } from "@/lib/apiBase";
 
 const Contact = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => { document.title = "Επικοινωνία | iatreia.gr"; }, []);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    setLoading(true);
+    try {
+      const res = await fetch(`${getApiBase()}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.get("name"),
+          email: data.get("email"),
+          subject: data.get("subject"),
+          message: data.get("message"),
+        }),
+      });
+      if (!res.ok) throw new Error("failed");
+      setSent(true);
+      form.reset();
+    } catch {
+      toast({ title: "Σφάλμα", description: "Δεν ήταν δυνατή η αποστολή. Δοκιμάστε πάλι ή επικοινωνήστε μέσω email.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,40 +60,44 @@ const Contact = () => {
       <section className="py-14">
         <div className="container mx-auto max-w-2xl px-4">
           <Card className="p-6 md:p-8">
-            <form
-              className="space-y-5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                toast({ title: "Το μήνυμα στάλθηκε", description: "Σας ευχαριστούμε. Θα επικοινωνήσουμε σύντομα." });
-                (e.target as HTMLFormElement).reset();
-              }}
-            >
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="name">Όνομα</Label>
-                  <Input id="name" required maxLength={100} className="mt-1.5" />
+            {sent ? (
+              <div className="flex flex-col items-center gap-4 py-8 text-center">
+                <CheckCircle2 className="h-14 w-14 text-green-500" />
+                <h2 className="text-xl font-semibold">Το μήνυμά σας στάλθηκε!</h2>
+                <p className="text-muted-foreground">Σας ευχαριστούμε. Θα επικοινωνήσουμε σύντομα.</p>
+                <Button variant="outline" onClick={() => setSent(false)}>Νέο μήνυμα</Button>
+              </div>
+            ) : (
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="name">Όνομα</Label>
+                    <Input id="name" name="name" required maxLength={100} className="mt-1.5" />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" required maxLength={255} className="mt-1.5" />
+                  </div>
                 </div>
                 <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required maxLength={255} className="mt-1.5" />
+                  <Label htmlFor="subject">Θέμα</Label>
+                  <Input id="subject" name="subject" required maxLength={150} className="mt-1.5" />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="subject">Θέμα</Label>
-                <Input id="subject" required maxLength={150} className="mt-1.5" />
-              </div>
-              <div>
-                <Label htmlFor="message">Μήνυμα</Label>
-                <Textarea id="message" required maxLength={2000} rows={6} className="mt-1.5" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Τα προσωπικά σας δεδομένα χρησιμοποιούνται αποκλειστικά για την απάντηση στο
-                αίτημά σας, σύμφωνα με την{" "}
-                <a href="/privacy" className="underline underline-offset-2 hover:text-primary">Πολιτική Απορρήτου</a>{" "}
-                μας. Δεν τα κοινοποιούμε σε τρίτους.
-              </p>
-              <Button type="submit" size="lg" className="w-full sm:w-auto">Αποστολή μηνύματος</Button>
-            </form>
+                <div>
+                  <Label htmlFor="message">Μήνυμα</Label>
+                  <Textarea id="message" name="message" required maxLength={2000} rows={6} className="mt-1.5" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Τα προσωπικά σας δεδομένα χρησιμοποιούνται αποκλειστικά για την απάντηση στο
+                  αίτημά σας, σύμφωνα με την{" "}
+                  <a href="/privacy" className="underline underline-offset-2 hover:text-primary">Πολιτική Απορρήτου</a>{" "}
+                  μας. Δεν τα κοινοποιούμε σε τρίτους.
+                </p>
+                <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={loading}>
+                  {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Αποστολή…</> : "Αποστολή μηνύματος"}
+                </Button>
+              </form>
+            )}
           </Card>
 
           <div className="mt-8 rounded-lg border bg-muted/40 px-6 py-5 text-sm text-muted-foreground">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plane, ShieldCheck, Banknote, Languages, Stethoscope, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,43 @@ const treatments = [
   "Other",
 ];
 
+const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+
 const MedicalTourism = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const treatmentRef = useRef<string>("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitted(true);
-    toast.success("Quote request received — we'll be in touch within 24 hours.");
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    setLoading(true);
+    try {
+      const res = await fetch(`${BASE}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fd.get("name") as string,
+          email: fd.get("email") as string,
+          subject: `Medical Tourism Quote – ${treatmentRef.current || "General"}`,
+          message: [
+            `Country: ${fd.get("country") ?? ""}`,
+            `Phone: ${fd.get("phone") ?? ""}`,
+            `Treatment: ${treatmentRef.current || "Not specified"}`,
+            ``,
+            (fd.get("msg") as string) || "",
+          ].join("\n").trim(),
+          treatment: treatmentRef.current || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error("failed");
+      setSubmitted(true);
+    } catch {
+      toast.error("Could not send your request. Please email us directly at hello@iatreia.gr");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -122,44 +152,42 @@ const MedicalTourism = () => {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="name">Full name</Label>
-                      <Input id="name" required className="mt-1" />
+                      <Input id="name" name="name" required className="mt-1" />
                     </div>
                     <div>
                       <Label htmlFor="country">Country</Label>
-                      <Input id="country" required placeholder="United Kingdom" className="mt-1" />
+                      <Input id="country" name="country" required placeholder="United Kingdom" className="mt-1" />
                     </div>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" required className="mt-1" />
+                      <Input id="email" name="email" type="email" required className="mt-1" />
                     </div>
                     <div>
                       <Label htmlFor="phone">Phone</Label>
-                      <Input id="phone" type="tel" className="mt-1" />
+                      <Input id="phone" name="phone" type="tel" className="mt-1" />
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="treatment">Treatment</Label>
-                    <Select>
+                    <Select onValueChange={(v) => { treatmentRef.current = v; }}>
                       <SelectTrigger id="treatment" className="mt-1">
                         <SelectValue placeholder="Select a treatment" />
                       </SelectTrigger>
                       <SelectContent>
                         {treatments.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {t}
-                          </SelectItem>
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label htmlFor="msg">Tell us more (optional)</Label>
-                    <Textarea id="msg" rows={4} className="mt-1" placeholder="Symptoms, preferred dates, special needs…" />
+                    <Textarea id="msg" name="msg" rows={4} className="mt-1" placeholder="Symptoms, preferred dates, special needs…" />
                   </div>
-                  <Button type="submit" size="lg" className="w-full">
-                    Request my free quote
+                  <Button type="submit" size="lg" className="w-full" disabled={loading}>
+                    {loading ? "Sending…" : "Request my free quote"}
                   </Button>
                 </form>
               </>

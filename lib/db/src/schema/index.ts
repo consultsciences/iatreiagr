@@ -8,3 +8,4 @@ export * from "./userRoles";
 export * from "./listingCountsCache";
 export * from "./userSubscriptions";
 export * from "./articles";
+export * from "./clinicSettings";

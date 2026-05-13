@@ -1,28 +1,24 @@
-// Premium ranking overrides for clinics in the /clinics directory.
+// Premium ranking for clinics in the /clinics directory.
 //
-// The base clinic dataset (`privateClinics`) is sourced from the public
-// Greek Ministry of Health list and is intentionally neutral. This module
-// layers a commercial "Premium" tier on top:
-//
+// Tiers:
 //   - `premium`  → paid subscription, ranks highest
-//   - `featured` → editorially highlighted, ranks above free listings
-//   - `verified` → ownership/details verified by our team, small boost
+//   - `featured` → editorially highlighted
+//   - `verified` → ownership verified, small boost
 //
-// In the future this map can be replaced by a `clinic_subscriptions` table
-// in the database without changing the consuming UI.
+// Settings are fetched from the DB via /api/clinics/settings and merged
+// with CLINIC_PREMIUM_DEFAULTS at startup. Admins update via /api/admin/clinics/settings/:id.
+
+import { getApiBase } from "@/lib/apiBase";
 
 export type ClinicTier = "premium" | "featured" | "verified" | "free";
 
 export type ClinicPremiumInfo = {
   tier: Exclude<ClinicTier, "free">;
-  /** Optional short marketing tagline shown on the card. */
   tagline?: string;
-  /** When true, the tier badge is hidden on the card (ranking still applies). */
   badgeHidden?: boolean;
 };
 
-// Keyed by `PrivateClinic.id`. Seed defaults — overrides from the admin
-// panel are layered on top via localStorage at runtime.
+// Compile-time defaults — shown before the API responds and as fallback.
 export const CLINIC_PREMIUM_DEFAULTS: Record<number, ClinicPremiumInfo> = {
   2: { tier: "premium", tagline: "24/7 επείγοντα · Συμβεβλημένη με ΕΟΠΥΥ" },
   5: { tier: "premium", tagline: "Πιστοποίηση JCI · Διεθνείς ασθενείς" },
@@ -32,31 +28,9 @@ export const CLINIC_PREMIUM_DEFAULTS: Record<number, ClinicPremiumInfo> = {
   50: { tier: "verified" },
 };
 
-const STORAGE_KEY = "clinicPremiumOverrides:v1";
-
-type OverrideEntry = ClinicPremiumInfo | { tier: "free" };
-
-function loadOverrides(): Record<number, OverrideEntry> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-const OVERRIDES: Record<number, OverrideEntry> = loadOverrides();
+// Runtime state — starts from defaults, overwritten by DB fetch.
+let SETTINGS: Record<number, ClinicPremiumInfo | null> = {};
 const listeners = new Set<() => void>();
-
-function persist() {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(OVERRIDES));
-  } catch {
-    /* ignore quota errors */
-  }
-}
 
 function emit() {
   listeners.forEach((fn) => fn());
@@ -67,19 +41,79 @@ export function subscribeClinicPremium(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
-export function setClinicPremium(id: number, info: ClinicPremiumInfo | null) {
-  if (info === null) {
-    OVERRIDES[id] = { tier: "free" };
-  } else {
-    OVERRIDES[id] = info;
+// Called once at app startup (App.tsx).
+export async function initClinicPremium(): Promise<void> {
+  try {
+    const base = getApiBase();
+    const res = await fetch(`${base}/api/clinics/settings`);
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      settings: { clinic_id: number; tier: string; tagline?: string | null; badge_hidden?: boolean }[];
+    };
+    const next: Record<number, ClinicPremiumInfo | null> = {};
+    for (const s of data.settings) {
+      if (s.tier === "premium" || s.tier === "featured" || s.tier === "verified") {
+        next[s.clinic_id] = {
+          tier: s.tier,
+          tagline: s.tagline ?? undefined,
+          badgeHidden: s.badge_hidden ?? false,
+        };
+      } else {
+        next[s.clinic_id] = null;
+      }
+    }
+    SETTINGS = next;
+    emit();
+  } catch {
+    // Non-fatal: fall back to compile-time defaults
   }
-  persist();
+}
+
+function resolve(id: number): ClinicPremiumInfo | undefined {
+  if (id in SETTINGS) {
+    const s = SETTINGS[id];
+    return s ?? undefined;
+  }
+  return CLINIC_PREMIUM_DEFAULTS[id];
+}
+
+export async function setClinicPremium(
+  id: number,
+  info: ClinicPremiumInfo | null,
+  token: string
+): Promise<void> {
+  const base = getApiBase();
+  if (info === null) {
+    await fetch(`${base}/api/admin/clinics/settings/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    SETTINGS[id] = null;
+  } else {
+    await fetch(`${base}/api/admin/clinics/settings/${id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        tier: info.tier,
+        tagline: info.tagline,
+        badge_hidden: info.badgeHidden ?? false,
+      }),
+    });
+    SETTINGS[id] = info;
+  }
   emit();
 }
 
-export function resetClinicPremium(id: number) {
-  delete OVERRIDES[id];
-  persist();
+export async function resetClinicPremium(id: number, token: string): Promise<void> {
+  const base = getApiBase();
+  await fetch(`${base}/api/admin/clinics/settings/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  delete SETTINGS[id];
   emit();
 }
 
@@ -87,9 +121,7 @@ export const CLINIC_PREMIUM = new Proxy({} as Record<number, ClinicPremiumInfo>,
   get(_t, prop) {
     const id = Number(prop);
     if (!Number.isFinite(id)) return undefined;
-    const ov = OVERRIDES[id];
-    if (ov) return ov.tier === "free" ? undefined : ov;
-    return CLINIC_PREMIUM_DEFAULTS[id];
+    return resolve(id);
   },
 });
 
@@ -101,25 +133,17 @@ const TIER_RANK: Record<ClinicTier, number> = {
 };
 
 export function getClinicTier(id: number): ClinicTier {
-  const ov = OVERRIDES[id];
-  if (ov) return ov.tier;
-  return CLINIC_PREMIUM_DEFAULTS[id]?.tier ?? "free";
+  return resolve(id)?.tier ?? "free";
 }
 
 export function getClinicPremium(id: number): ClinicPremiumInfo | undefined {
-  const ov = OVERRIDES[id];
-  if (ov) return ov.tier === "free" ? undefined : ov;
-  return CLINIC_PREMIUM_DEFAULTS[id];
+  return resolve(id);
 }
 
 export function hasOverride(id: number): boolean {
-  return id in OVERRIDES;
+  return id in SETTINGS;
 }
 
-/**
- * Stable comparator: premium → featured → verified → free, then by id
- * so ordering is deterministic across renders.
- */
 export function compareClinicsByTier(aId: number, bId: number): number {
   const diff = TIER_RANK[getClinicTier(aId)] - TIER_RANK[getClinicTier(bId)];
   return diff !== 0 ? diff : aId - bId;
