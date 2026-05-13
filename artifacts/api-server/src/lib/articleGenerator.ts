@@ -119,9 +119,9 @@ async function generateSingleArticle(category: string): Promise<GeneratedArticle
 export async function generateArticles(count: number) {
   const categories = pickCategories(count);
 
-  const results = await batchProcess(
+  const results = await batchProcess<string, GeneratedArticleData | null>(
     categories,
-    async (category) => {
+    async (category: string) => {
       try {
         return await generateSingleArticle(category);
       } catch (err) {
@@ -135,7 +135,7 @@ export async function generateArticles(count: number) {
   const validResults = results.filter((r): r is GeneratedArticleData => r !== null);
 
   const inserted = await Promise.all(
-    validResults.map(async (data) => {
+    validResults.map(async (data: GeneratedArticleData) => {
       const baseSlug = slugify(data.title) || `article-${Date.now()}`;
       const slug = `${baseSlug}-${Date.now().toString(36)}`;
       const imageUrl = COVER_IMAGES[data.category] ?? COVER_IMAGES["Νέα Ιατρικής"];
